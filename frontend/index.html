@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CekHoaks AI - Sistem Deteksi Berita Cerdas Multi-Platform</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- App Wrapper Frame (Bisa Full Desktop / Simulasi HP) -->
+  <div class="mobile-wrapper" id="app-wrapper">
+
+    <!-- Header Aplikasi -->
+    <header class="app-header">
+      <div class="header-top">
+        <div class="brand-badge">
+          <div class="logo-icon">🛡️</div>
+          <div>
+            <h1>CekHoaks AI</h1>
+            <span>Multinomial Naive Bayes & Explainable AI (LIME)</span>
+          </div>
+        </div>
+        <div class="header-badges">
+          <span class="status-pill"><span class="pulse-dot"></span> MNB Online (4877 Fitur)</span>
+        </div>
+        <div class="header-actions">
+          <button class="view-toggle-btn" id="btn-toggle-view" title="Ubah Tampilan Layar Penuh / HP">
+            <span id="view-toggle-icon">📱</span> <span class="btn-label" id="view-toggle-text">Mode HP</span>
+          </button>
+          <button class="dark-mode-toggle" id="btn-dark-mode" title="Mode Gelap / Terang">🌙</button>
+          <button class="icon-btn" id="btn-open-metrics" title="Metrik & Eksperimen MLOps" onclick="openModal('modal-metrics')">📊</button>
+          <button class="icon-btn" id="btn-open-sus" title="Uji Usabilitas SUS" onclick="openModal('modal-sus')">📝</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Area Konten Utama -->
+    <main class="content-area">
+
+      <!-- Statistik Dashboard Ringkas -->
+      <div class="stats-dashboard" id="stats-dashboard">
+        <div class="stat-card">
+          <span class="stat-icon">🔍</span>
+          <span class="stat-value" id="stat-total">0</span>
+          <span class="stat-label">Total Pemeriksaan</span>
+        </div>
+        <div class="stat-card stat-hoax">
+          <span class="stat-icon">🚨</span>
+          <span class="stat-value" id="stat-hoax">0</span>
+          <span class="stat-label">Hoaks Terdeteksi</span>
+        </div>
+        <div class="stat-card stat-fact">
+          <span class="stat-icon">✅</span>
+          <span class="stat-value" id="stat-fact">0</span>
+          <span class="stat-label">Fakta Terverifikasi</span>
+        </div>
+        <div class="stat-card stat-model">
+          <span class="stat-icon">🧠</span>
+          <span class="stat-value" id="stat-accuracy">72.0%</span>
+          <span class="stat-label">Akurasi Model MNB</span>
+        </div>
+      </div>
+
+      <!-- Grid Layout Utama: 2 Kolom di Laptop / Full Screen -->
+      <div class="main-content-grid">
+
+        <!-- Kolom Kiri: Input, Preset & Pemindai -->
+        <div class="grid-col-left">
+
+          <!-- Navigasi Tripartit -->
+          <nav class="tripartite-tabs">
+            <button class="tab-btn active" data-tab="panel-text">
+              <span class="tab-icon">✍️</span>
+              <span>Teks Bebas</span>
+            </button>
+            <button class="tab-btn" data-tab="panel-url">
+              <span class="tab-icon">🔗</span>
+              <span>URL Scraper</span>
+            </button>
+            <button class="tab-btn" data-tab="panel-ocr">
+              <span class="tab-icon">📷</span>
+              <span>OCR Gambar</span>
+            </button>
+          </nav>
+
+          <!-- Preset Uji Cepat -->
+          <div class="presets-container">
+            <span class="preset-label">⚡ Simulasi Kasus Cepat (Klik untuk Uji Instan):</span>
+            <div class="preset-pills">
+              <button class="pill-btn" data-preset="hoax-politik">🚨 Hoaks Politik KPU</button>
+              <button class="pill-btn" data-preset="hoax-kesehatan">⚠️ Hoaks Vaksin</button>
+              <button class="pill-btn" data-preset="fakta-resmi">✅ Fakta Kemenkes</button>
+              <button class="pill-btn" data-preset="fakta-bmkg">🌍 Fakta BMKG</button>
+            </div>
+          </div>
+
+          <!-- Tab Panel 1: Teks Bebas -->
+          <section id="panel-text" class="tab-panel active">
+            <div class="form-group">
+              <label for="text-title">Judul Berita (Analisis Clickbait & Polaritas):</label>
+              <input type="text" id="text-title" placeholder="Contoh: Awas Konspirasi Manipulasi Suara...">
+            </div>
+            <div class="form-group">
+              <label for="text-content">Isi Paragraf / Teks Pesan Berantai:</label>
+              <textarea id="text-content" placeholder="Tempelkan paragraf berita, pesan WhatsApp, atau artikel di sini..."></textarea>
+            </div>
+            <button id="btn-classify-text" class="btn-primary">
+              <span>🔍</span> Periksa Validitas Berita AI
+            </button>
+          </section>
+
+          <!-- Tab Panel 2: URL Scraper -->
+          <section id="panel-url" class="tab-panel">
+            <div class="form-group">
+              <label for="input-url">Tautan (URL) Berita Web:</label>
+              <input type="url" id="input-url" placeholder="https://news.detik.com/... atau https://kompas.com/...">
+            </div>
+            <p class="panel-hint">
+              Sistem akan secara otomatis mengekstrak judul DOM HTML dan konten paragraf berita tanpa perlu menyalin manual.
+            </p>
+            <button id="btn-classify-url" class="btn-primary">
+              <span>🌐</span> Ekstrak & Analisis URL
+            </button>
+          </section>
+
+          <!-- Tab Panel 3: OCR Gambar / Screenshot -->
+          <section id="panel-ocr" class="tab-panel">
+            <div class="ocr-dropzone" onclick="document.getElementById('image-input').click()">
+              <span class="upload-icon">📸</span>
+              <h4>Unggah Screenshot / Foto Berita</h4>
+              <p>Tangkapan layar WhatsApp, Instagram, atau portal media</p>
+              <p id="ocr-preview-name" class="ocr-file-name"></p>
+              <input type="file" id="image-input" accept="image/*" style="display:none;">
+            </div>
+
+            <!-- Visualisasi Pipeline Computer Vision OpenCV -->
+            <div id="ocr-cv-pipeline-preview" style="display:none; flex-direction:column; gap:6px; margin-top:4px;">
+              <span style="font-size:11px; font-weight:700; color:#334155;">Visualisasi Pipeline Computer Vision (OpenCV):</span>
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+                <div style="background:#f1f5f9; padding:6px; border-radius:6px; text-align:center;">
+                  <span style="font-size:10px; font-weight:600; color:#475569;">1. Grayscale (+22%)</span>
+                  <canvas id="cv-canvas-gray" style="width:100%; height:75px; border-radius:4px; margin-top:4px; background:#000;"></canvas>
+                </div>
+                <div style="background:#f1f5f9; padding:6px; border-radius:6px; text-align:center;">
+                  <span style="font-size:10px; font-weight:600; color:#475569;">2. Adaptive Binarization</span>
+                  <canvas id="cv-canvas-bin" style="width:100%; height:75px; border-radius:4px; margin-top:4px; background:#fff;"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <p class="panel-hint">
+              Dilengkapi pipeline prapemrosesan OpenCV: Grayscale, Denoising, CLAHE (+60.99% kontras), dan Binarization Adaptive sebelum diekstraksi ke teks.
+            </p>
+            <button id="btn-classify-image" class="btn-primary" disabled>
+              <span>✨</span> Pindai Citra & Deteksi Teks
+            </button>
+          </section>
+
+        </div>
+
+        <!-- Kolom Kanan: Hasil Analisis AI & Spidometer -->
+        <div class="grid-col-right">
+
+          <!-- Placeholder State (Sebelum Pemeriksaan) -->
+          <div id="result-placeholder" class="result-placeholder">
+            <div class="placeholder-icon">🛡️</div>
+            <h3>Sistem Siap Menganalisis Berita</h3>
+            <p>Pilih kasus uji cepat di sebelah kiri atau masukkan teks berita Anda, lalu klik tombol <strong>"Periksa Validitas Berita AI"</strong>.</p>
+            <div class="feature-bullets">
+              <div class="bullet-item">
+                <span class="bullet-badge red">🎯</span>
+                <div>
+                  <strong>Spidometer Psikologis Arc:</strong>
+                  <span>Menampilkan persentase probabilitas terkalibrasi Posterior Multinomial Naive Bayes.</span>
+                </div>
+              </div>
+              <div class="bullet-item">
+                <span class="bullet-badge blue">💡</span>
+                <div>
+                  <strong>Explainable AI (LIME):</strong>
+                  <span>Ekstraksi bobot kata kunci pemicu keputusan sistem secara transparan.</span>
+                </div>
+              </div>
+              <div class="bullet-item">
+                <span class="bullet-badge green">📋</span>
+                <div>
+                  <strong>Shareable Fact Card:</strong>
+                  <span>Template pesan klarifikasi dan kartu fakta PNG siap unduh untuk dibagikan ke WhatsApp.</span>
+                </div>
+              </div>
+              <div class="bullet-item">
+                <span class="bullet-badge purple">🛡️</span>
+                <div>
+                  <strong>Proteksi Kata Negasi:</strong>
+                  <span>Kata <em>tidak</em>, <em>bukan</em>, <em>belum</em> tetap terlindungi agar polaritas kalimat akurat.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hasil Klasifikasi & Spidometer -->
+          <section id="result-card" class="result-card" style="display:none;">
+            <div class="result-header">
+              <span id="verdict-badge" class="verdict-tag verdict-hoax">TERINDIKASI HOAKS</span>
+              <span id="result-risk-level" class="risk-label">Tingkat Risiko</span>
+            </div>
+
+            <!-- Spidometer Arc Psikologis -->
+            <div class="gauge-container">
+              <svg class="gauge-svg" viewBox="0 0 200 115">
+                <path class="gauge-bg" d="M 20 100 A 80 80 0 0 1 180 100" />
+                <path id="gauge-meter-path" class="gauge-meter" d="M 20 100 A 80 80 0 0 1 180 100" />
+              </svg>
+              <div class="gauge-score-display">
+                <h3 id="gauge-score-num">0%</h3>
+                <p id="gauge-type-label">Probabilitas Posterior MNB</p>
+              </div>
+            </div>
+
+            <div class="prob-breakdown">
+              <div>Skor Hoaks: <span id="score-hoax-pct" class="prob-hoax-val">0%</span></div>
+              <div>Skor Fakta: <span id="score-fact-pct" class="prob-fact-val">0%</span></div>
+            </div>
+
+            <!-- Explainable AI (LIME Feature Words) -->
+            <div class="xai-section">
+              <h4>
+                <span>💡</span> Kata Kunci Pemicu Keputusan AI (XAI):
+              </h4>
+              <div id="xai-chips-list" class="xai-chips"></div>
+            </div>
+
+            <!-- Shareable Fact Card Preview -->
+            <div class="fact-card-preview" id="fact-card-box">
+              <div class="fact-card-header">
+                <span>🛡️ CEKHOAKS VERIFIKASI RESMI</span>
+                <span id="fc-meta">Probabilitas: 88%</span>
+              </div>
+              <div class="fact-card-verdict" id="fc-verdict">⚠️ PERINGATAN HOAKS</div>
+              <div class="fact-card-title" id="fc-title">"Judul berita akan dirender di sini..."</div>
+              <div class="fact-card-footer">
+                <span>Saring Sebelum Sharing • CekHoaks Mobile</span>
+                <span>Didukung Multinomial Naive Bayes</span>
+              </div>
+            </div>
+
+            <div class="card-actions">
+              <button id="btn-copy-card-text" class="btn-secondary">
+                <span>📋</span> Salin Teks Bantahan
+              </button>
+              <button id="btn-download-fact-card" class="btn-secondary">
+                <span>🖼️</span> Unduh Kartu Fakta
+              </button>
+            </div>
+
+            <!-- Crowdsourced Feedback -->
+            <div class="feedback-box">
+              <span style="font-weight:600;">Apakah hasil prediksi ini sesuai dengan fakta?</span>
+              <div class="feedback-buttons">
+                <button id="btn-feedback-agree" class="btn-feedback agree">👍 Setuju</button>
+                <button id="btn-feedback-disagree" class="btn-feedback disagree">👎 Sanggah (Bukan Hoaks)</button>
+              </div>
+            </div>
+          </section>
+
+        </div>
+
+      </div>
+
+    </main>
+
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <footer class="bottom-nav">
+      <button class="nav-item active" data-action="home">
+        <span class="nav-icon">🏠</span>
+        <span>Pemeriksa</span>
+      </button>
+      <button class="nav-item" data-action="history">
+        <span class="nav-icon">📜</span>
+        <span>Riwayat</span>
+      </button>
+      <button class="nav-item" data-action="metrics">
+        <span class="nav-icon">📈</span>
+        <span>Eksperimen</span>
+      </button>
+      <button class="nav-item" data-action="sus">
+        <span class="nav-icon">⭐</span>
+        <span>Uji SUS</span>
+      </button>
+    </footer>
+
+  </div>
+
+  <!-- Modal 1: Riwayat Audit (Offline Cache) -->
+  <div id="modal-history" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>📜 Riwayat Audit Pemeriksaan Berita</h3>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body" id="history-list-container">
+        <!-- History items rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Metrik Model & Eksperimen MLOps -->
+  <div id="modal-metrics" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>📊 Kerangka Eksperimen & Metrik MLOps</h3>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:#64748b; font-size:12px;">
+          Evaluasi matematis K-Fold Cross Validation (k=10) terhadap 4 skenario eksperimen sesuai cetak biru riset:
+        </p>
+        <table class="metrics-table">
+          <thead>
+            <tr>
+              <th>Skenario</th>
+              <th>Akurasi</th>
+              <th>Presisi</th>
+              <th>Recall</th>
+              <th>F1-Score</th>
+            </tr>
+          </thead>
+          <tbody id="metrics-table-body">
+            <!-- Scenarios rows rendered dynamically -->
+          </tbody>
+        </table>
+        <!-- Live MLOps Stress Benchmark -->
+        <div style="background:#eef2ff; border:1px solid #c7d2fe; padding:12px; border-radius:8px; display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:700; font-size:12px; color:#3730a3;">⚡ Uji Stres Latensi MNB (Load Test)</span>
+            <button id="btn-run-live-benchmark" class="btn-primary" style="padding:6px 12px; font-size:11px; margin:0;">Mulai Uji Beban</button>
+          </div>
+          <p style="font-size:11px; color:#475569; margin:0;">Menjalankan 20 inferensi sekuensial paralel untuk mengukur throughput (req/s) dan latensi CPU-bound.</p>
+          <div id="live-benchmark-results" style="display:none; font-size:11px; color:#1e1b4b; background:#fff; padding:8px; border-radius:6px; border:1px solid #c7d2fe;"></div>
+        </div>
+
+        <div style="background:#f1f5f9; padding:10px; border-radius:8px; font-size:11px; color:#475569;">
+          <strong>Model Produksi:</strong> Multinomial Naive Bayes (MNB)<br>
+          <strong>Vektorisasi:</strong> TF-IDF N-gram (1,2) Spasial L2-Norm<br>
+          <strong>Smoothing:</strong> Lidstone Additive Smoothing (&alpha; = 0.5)<br>
+          <strong>Komputasi:</strong> Domain Logaritmik (Log-Space Arithmetic)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: System Usability Scale (SUS) Calculator -->
+  <div id="modal-sus" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>📝 Kuesioner Evaluasi SUS (System Usability Scale)</h3>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:#64748b; font-size:12px;">
+          Standar instrumen Usability Testing skala Likert (1: Sangat Tidak Setuju, 5: Sangat Setuju). Ambang batas acceptable: <strong>skor &gt; 68</strong>.
+        </p>
+
+        <!-- 10 SUS Questions -->
+        <div class="sus-question">
+          <p>1. Saya berpikir akan sering menggunakan aplikasi CekHoaks ini.</p>
+          <div class="likert-scale">
+            <span>STS (1)</span>
+            <label><input type="radio" name="sus-q1" value="1"> 1</label>
+            <label><input type="radio" name="sus-q1" value="2"> 2</label>
+            <label><input type="radio" name="sus-q1" value="3"> 3</label>
+            <label><input type="radio" name="sus-q1" value="4"> 4</label>
+            <label><input type="radio" name="sus-q1" value="5" checked> 5</label>
+            <span>SS (5)</span>
+          </div>
+        </div>
+
+        <div class="sus-question">
+          <p>2. Saya merasa sistem ini terlalu rumit untuk digunakan.</p>
+          <div class="likert-scale">
+            <span>STS (1)</span>
+            <label><input type="radio" name="sus-q2" value="1" checked> 1</label>
+            <label><input type="radio" name="sus-q2" value="2"> 2</label>
+            <label><input type="radio" name="sus-q2" value="3"> 3</label>
+            <label><input type="radio" name="sus-q2" value="4"> 4</label>
+            <label><input type="radio" name="sus-q2" value="5"> 5</label>
+            <span>SS (5)</span>
+          </div>
+        </div>
+
+        <div class="sus-question">
+          <p>3. Saya merasa antarmuka aplikasi ini sangat mudah digunakan.</p>
+          <div class="likert-scale">
+            <span>STS (1)</span>
+            <label><input type="radio" name="sus-q3" value="1"> 1</label>
+            <label><input type="radio" name="sus-q3" value="2"> 2</label>
+            <label><input type="radio" name="sus-q3" value="3"> 3</label>
+            <label><input type="radio" name="sus-q3" value="4"> 4</label>
+            <label><input type="radio" name="sus-q3" value="5" checked> 5</label>
+            <span>SS (5)</span>
+          </div>
+        </div>
+
+        <div class="sus-question">
+          <p>4. Saya merasa butuh bantuan orang lain untuk menggunakan sistem ini.</p>
+          <div class="likert-scale">
+            <span>STS (1)</span>
+            <label><input type="radio" name="sus-q4" value="1" checked> 1</label>
+            <label><input type="radio" name="sus-q4" value="2"> 2</label>
+            <label><input type="radio" name="sus-q4" value="3"> 3</label>
+            <label><input type="radio" name="sus-q4" value="4"> 4</label>
+            <label><input type="radio" name="sus-q4" value="5"> 5</label>
+            <span>SS (5)</span>
+          </div>
+        </div>
+
+        <div class="sus-question">
+          <p>5. Fitur-fitur dalam sistem ini terintegrasi dengan sangat baik.</p>
+          <div class="likert-scale">
+            <span>STS (1)</span>
+            <label><input type="radio" name="sus-q5" value="1"> 1</label>
+            <label><input type="radio" name="sus-q5" value="2"> 2</label>
+            <label><input type="radio" name="sus-q5" value="3"> 3</label>
+            <label><input type="radio" name="sus-q5" value="4"> 4</label>
+            <label><input type="radio" name="sus-q5" value="5" checked> 5</label>
+            <span>SS (5)</span>
+          </div>
+        </div>
+
+        <div class="sus-question">
+          <p>6. Saya merasa ada banyak ketidakkonsistenan pada sistem ini.</p>
+          <div class="likert-scale">
+            <span>STS (1)</span>
+            <label><input type="radio" name="sus-q6" value="1" checked> 1</label>
+            <label><input type="radio" name="sus-q6" value="2"> 2</label>
+            <label><input type="radio" name="sus-q6" value="3"> 3</label>
+            <label><input type="radio" name="sus-q6" value="4"> 4</label>
+            <label><input type="radio" name="sus-q6" value="5"> 5</label>
+            <span>SS (5)</span>
+          </div>
+        </div>
+
+        <div class="sus-question">
+          <p>7. Sebagian besar orang dapat belajar menggunakan sistem ini dengan sangat cepat.</p>
+          <div class="likert-scale">
+            <span>STS (1)</span>
+            <label><input type="radio" name="sus-q7" value="1"> 1</label>
+            <label><input type="radio" name="sus-q7" value="2"> 2</label>
+            <label><input type="radio" name="sus-q7" value="3"> 3</label>
+            <label><input type="radio" name="sus-q7" value="4"> 4</label>
+            <label><input type="radio" name="sus-q7" value="5" checked> 5</label>
+            <span>SS (5)</span>
+          </div>
+        </div>
+
+        <div class="sus-question">
+          <p>8. Saya merasa sistem ini sangat janggal atau membingungkan saat digunakan.</p>
+          <div class="likert-scale">
+            <span>STS (1)</span>
+            <label><input type="radio" name="sus-q8" value="1" checked> 1</label>
+            <label><input type="radio" name="sus-q8" value="2"> 2</label>
+            <label><input type="radio" name="sus-q8" value="3"> 3</label>
+            <label><input type="radio" name="sus-q8" value="4"> 4</label>
+            <label><input type="radio" name="sus-q8" value="5"> 5</label>
+            <span>SS (5)</span>
+          </div>
+        </div>
+
+        <div class="sus-question">
+          <p>9. Saya merasa sangat percaya diri saat menggunakan sistem ini.</p>
+          <div class="likert-scale">
+            <span>STS (1)</span>
+            <label><input type="radio" name="sus-q9" value="1"> 1</label>
+            <label><input type="radio" name="sus-q9" value="2"> 2</label>
+            <label><input type="radio" name="sus-q9" value="3"> 3</label>
+            <label><input type="radio" name="sus-q9" value="4"> 4</label>
+            <label><input type="radio" name="sus-q9" value="5" checked> 5</label>
+            <span>SS (5)</span>
+          </div>
+        </div>
+
+        <div class="sus-question">
+          <p>10. Saya perlu mempelajari banyak hal baru sebelum dapat mengoperasikan sistem ini.</p>
+          <div class="likert-scale">
+            <span>STS (1)</span>
+            <label><input type="radio" name="sus-q10" value="1" checked> 1</label>
+            <label><input type="radio" name="sus-q10" value="2"> 2</label>
+            <label><input type="radio" name="sus-q10" value="3"> 3</label>
+            <label><input type="radio" name="sus-q10" value="4"> 4</label>
+            <label><input type="radio" name="sus-q10" value="5"> 5</label>
+            <span>SS (5)</span>
+          </div>
+        </div>
+
+        <button id="btn-calculate-sus" class="btn-primary" style="margin-top:10px;">
+          <span>🧮</span> Hitung Skor SUS Usabilitas
+        </button>
+
+        <div id="sus-result-box" class="sus-score-badge" style="display:none; margin-top:12px;">
+          <span style="font-size:12px; color:#64748b; font-weight:600;">Skor Usabilitas Terhitung:</span>
+          <h2 id="sus-result-score">85.0</h2>
+          <p id="sus-result-grade" style="font-size:13px; font-weight:700; color:#059669;">Grade A (Excellent) • Acceptable</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
+

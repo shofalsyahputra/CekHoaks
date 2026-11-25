@@ -1,0 +1,14 @@
+# Dependensi Sistem Deteksi Hoaks Multi-Platform
+# Catatan: Backend dirancang dengan Pure Python Engine bawaan sehingga DAPAT LANGSUNG BERJALAN
+# tanpa perlu koneksi internet atau instalasi library eksternal.
+# Pustaka di bawah ini dapat diinstal secara opsional jika ingin integrasi tingkat lanjut:
+scikit-learn>=1.3.0
+numpy>=1.24.0
+fastapi>=0.100.0
+uvicorn>=0.23.0
+beautifulsoup4>=4.12.0
+pytesseract>=0.3.10
+pillow>=10.0.0
+opencv-python-headless>=4.8.0
+sastrawi>=1.0.1
+

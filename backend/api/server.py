@@ -18,6 +18,7 @@ from ml.xai import ExplainableAIEngine
 from services.scraper import NewsWebScraper
 from services.ocr_service import OCRService
 from services.feedback_service import DatabaseService
+from services.feed_service import LiveHoaxFeedService
 
 # Load persistent models
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -30,6 +31,7 @@ preprocessor = IndonesianNLPPreprocessor(enable_stemming=True)
 scraper_service = NewsWebScraper(timeout=10)
 ocr_service = OCRService()
 db_service = DatabaseService(DB_PATH)
+feed_service = LiveHoaxFeedService()
 
 vectorizer = None
 classifier = None
@@ -112,6 +114,12 @@ class AppRequestHandler(BaseHTTPRequestHandler):
                 "hoax_detected": hoax_count,
                 "fact_verified": fact_count
             })
+            return
+
+        # 3.1 API: Live Trending RSS Feed Radar (MAFINDO)
+        if path == "/api/v1/radar/trending":
+            feed_data = feed_service.get_feed(force_refresh=False)
+            self._send_json(200, feed_data)
             return
 
         # 4. Layani File Statis Frontend (Aplikasi Mobile Web / PWA)
@@ -270,7 +278,13 @@ class AppRequestHandler(BaseHTTPRequestHandler):
             })
             return
 
-        # 7. POST /api/v1/research/train (Re-train Engine)
+        # 7. POST /api/v1/radar/sync (Paksa Sinkronisasi Live RSS MAFINDO)
+        if path == "/api/v1/radar/sync":
+            feed_data = feed_service.get_feed(force_refresh=True)
+            self._send_json(200, feed_data)
+            return
+
+        # 8. POST /api/v1/research/train (Re-train Engine)
         if path == "/api/v1/research/train":
             from train_model import train
             train()

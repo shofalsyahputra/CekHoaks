@@ -1026,8 +1026,8 @@ function renderMultiDimensionalMetrics(metrics) {
   }
 }
 
-// 20. Live Trending Hoaks Radar Section
-const TRENDING_HOAX_FEED = [
+// 20. Live Trending Hoaks Radar Section (Auto-Sync MAFINDO RSS & Fallback)
+let TRENDING_HOAX_FEED = [
   {
     title: "Beredar Video Menara BTS 5G Memancarkan Radiasi Pengendali Pikiran",
     category: "Teknologi & Kesehatan",
@@ -1048,7 +1048,7 @@ const TRENDING_HOAX_FEED = [
   },
   {
     title: "Klaim Air Rebusan Daun Sirih Dapat Menyembuhkan Penyakit Jantung Koroner",
-    category: "Medis & Herbal",
+    category: "Teknologi & Kesehatan",
     verdict: "HOAKS",
     source: "PB PERKI & Kemenkes",
     date: "25 Nov 2026",
@@ -1066,29 +1066,58 @@ const TRENDING_HOAX_FEED = [
   }
 ];
 
-function initTrendingNewsFeed() {
-  const container = document.getElementById("trending-news-grid");
-  if (!container) return;
+async function fetchLiveTrendingFeed(forceRefresh = false) {
+  const syncBtn = document.getElementById("btn-sync-radar");
+  const syncIcon = document.getElementById("sync-icon");
+  const syncLabel = document.getElementById("sync-label");
 
-  container.innerHTML = TRENDING_HOAX_FEED.map((item, idx) => {
-    const isHoax = item.verdict === "HOAKS";
-    return `
-      <div class="trending-card ${isHoax ? 'trend-hoax' : 'trend-fact'}">
-        <div class="trending-card-top">
-          <span class="trending-cat">${item.category}</span>
-          <span class="trending-badge ${isHoax ? 'badge-hoax' : 'badge-fact'}">${item.verdict}</span>
-        </div>
-        <h4 class="trending-card-title">${item.title}</h4>
-        <p class="trending-card-summary">${item.summary}</p>
-        <div class="trending-card-footer">
-          <span class="trending-source">🔍 Verifikasi: ${item.source}</span>
-          <button class="trending-test-btn" onclick="testTrendingItem(${idx})">
-            <span>⚡</span> Uji di AI
-          </button>
-        </div>
-      </div>
-    `;
-  }).join("");
+  if (syncBtn && forceRefresh) {
+    syncBtn.disabled = true;
+    if (syncIcon) syncIcon.classList.add("spin");
+    if (syncLabel) syncLabel.textContent = "Menyinkronkan...";
+  }
+
+  try {
+    const endpoint = forceRefresh ? `${API_BASE}/api/v1/radar/sync` : `${API_BASE}/api/v1/radar/trending`;
+    const res = await fetch(endpoint, {
+      method: forceRefresh ? "POST" : "GET",
+      headers: { "Content-Type": "application/json" }
+    });
+    const result = await res.json();
+    if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+      TRENDING_HOAX_FEED = result.data;
+      filterAndRenderArchive();
+      const statusPill = document.getElementById("radar-live-pill");
+      if (statusPill) {
+        statusPill.innerHTML = `<span class="pulse-dot"></span> Live (${result.source === 'live_mafindo' ? 'MAFINDO Terkini' : 'Tersinkronisasi'})`;
+      }
+    }
+  } catch (err) {
+    console.warn("Sinkronisasi live feed beralih ke cache lokal:", err);
+  } finally {
+    if (syncBtn && forceRefresh) {
+      setTimeout(() => {
+        syncBtn.disabled = false;
+        if (syncIcon) syncIcon.classList.remove("spin");
+        if (syncLabel) syncLabel.textContent = "Cek Berita Baru";
+      }, 700);
+    }
+  }
+}
+
+function initTrendingNewsFeed() {
+  const syncBtn = document.getElementById("btn-sync-radar");
+  if (syncBtn) {
+    syncBtn.addEventListener("click", () => fetchLiveTrendingFeed(true));
+  }
+
+  // Tarik berita live feed MAFINDO otomatis saat halaman dimuat
+  fetchLiveTrendingFeed(false);
+
+  // Auto-refresh background setiap 5 menit agar berita baru otomatis masuk
+  setInterval(() => {
+    fetchLiveTrendingFeed(false);
+  }, 300000);
 }
 
 function testTrendingItem(idx) {

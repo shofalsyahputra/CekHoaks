@@ -23,7 +23,7 @@
           <div class="logo-icon">🛡️</div>
           <div>
             <h1>CekHoaks AI</h1>
-            <span>Multinomial Naive Bayes & Explainable AI (LIME)</span>
+            <span>Platform Verifikasi Fakta Cerdas & Transparan Indonesia</span>
           </div>
         </div>
         <div class="header-badges">
@@ -34,6 +34,8 @@
             <span id="view-toggle-icon">📱</span> <span class="btn-label" id="view-toggle-text">Mode HP</span>
           </button>
           <button class="icon-btn" id="btn-toggle-sound" title="Efek Suara AI (Aktif/Bisu)">🔊</button>
+          <button class="icon-btn" id="btn-open-guide" title="Panduan Mudah Cara Menggunakan Web" onclick="openModal('modal-guide')">📖</button>
+          <button class="icon-btn" id="btn-open-glossary" title="Kamus Istilah Literasi Digital" onclick="openModal('modal-glossary')">💡</button>
           <button class="icon-btn" id="btn-open-compare" title="Komparasi 2 Berita Berdampingan" onclick="openModal('modal-compare')">⚖️</button>
           <button class="dark-mode-toggle" id="btn-dark-mode" title="Mode Gelap / Terang">🌙</button>
           <button class="icon-btn" id="btn-open-metrics" title="Metrik & Eksperimen MLOps" onclick="openModal('modal-metrics')">📊</button>
@@ -44,6 +46,30 @@
 
     <!-- Area Konten Utama -->
     <main class="content-area">
+
+      <!-- Hero Banner Sederhana & Ramah Pengguna -->
+      <section class="hero-onboarding">
+        <div class="hero-text">
+          <h2>Verifikasi Validitas Berita dengan Kecerdasan Buatan</h2>
+          <p>Dapatkan kepastian apakah suatu pesan viral atau berita adalah <strong>fakta terpercaya</strong> atau <strong>hoaks berbahaya</strong> dalam hitungan detik.</p>
+        </div>
+        <div class="hero-steps">
+          <div class="step-badge">
+            <span class="step-num">1</span>
+            <span>Tempel Teks / URL / Foto</span>
+          </div>
+          <div class="step-arrow">➔</div>
+          <div class="step-badge">
+            <span class="step-num">2</span>
+            <span>AI Menganalisis Pola Bahasa</span>
+          </div>
+          <div class="step-arrow">➔</div>
+          <div class="step-badge">
+            <span class="step-num">3</span>
+            <span>Vonis & Teks Klarifikasi WA</span>
+          </div>
+        </div>
+      </section>
 
       <!-- Statistik Dashboard Ringkas -->
       <div class="stats-dashboard" id="stats-dashboard">
@@ -105,12 +131,25 @@
           <!-- Tab Panel 1: Teks Bebas -->
           <section id="panel-text" class="tab-panel active">
             <div class="form-group">
-              <label for="text-title">Judul Berita (Analisis Clickbait & Polaritas):</label>
+              <div class="label-with-tool">
+                <label for="text-title">Judul Berita (Analisis Clickbait & Polaritas):</label>
+                <button type="button" class="tool-mini-btn" id="btn-paste-title" title="Tempel judul dari papan klip">📋 Tempel</button>
+              </div>
               <input type="text" id="text-title" placeholder="Contoh: Awas Konspirasi Manipulasi Suara...">
             </div>
             <div class="form-group">
-              <label for="text-content">Isi Paragraf / Teks Pesan Berantai:</label>
+              <div class="label-with-tool">
+                <label for="text-content">Isi Paragraf / Teks Pesan Berantai:</label>
+                <div class="helper-btns-group">
+                  <button type="button" class="tool-mini-btn" id="btn-clean-wa" title="Hapus [Forwarded], timestamp jam, dan tanda pesan WhatsApp">🧹 Bersihkan Teks WA</button>
+                  <button type="button" class="tool-mini-btn" id="btn-paste-content" title="Tempel isi dari papan klip">📋 Tempel</button>
+                  <button type="button" class="tool-mini-btn text-danger" id="btn-clear-text" title="Hapus semua teks">🗑️ Bersihkan</button>
+                </div>
+              </div>
               <textarea id="text-content" placeholder="Tempelkan paragraf berita, pesan WhatsApp, atau artikel di sini..."></textarea>
+              <div class="text-meta-counter">
+                <span id="text-char-count">0 karakter</span> • <span id="text-read-time">~0 detik baca</span>
+              </div>
             </div>
             <button id="btn-classify-text" class="btn-primary">
               <span>🔍</span> Periksa Validitas Berita AI
@@ -206,11 +245,25 @@
             </div>
           </div>
 
-          <!-- Hasil Klasifikasi & Spidometer -->
+          <!-- Hasil Klasifikasi & Spidometer (Studio Mode Profesional) -->
           <section id="result-card" class="result-card" style="display:none;">
             <div class="result-header">
               <span id="verdict-badge" class="verdict-tag verdict-hoax">TERINDIKASI HOAKS</span>
-              <span id="result-risk-level" class="risk-label">Tingkat Risiko</span>
+              <div class="result-header-tools">
+                <button type="button" id="btn-voice-read" class="voice-read-btn" title="Dengarkan kesimpulan AI dalam suara Bahasa Indonesia">
+                  <span id="voice-icon">🔊</span> <span id="voice-label">Dengarkan AI</span>
+                </button>
+                <span id="result-risk-level" class="risk-label">Tingkat Risiko</span>
+              </div>
+            </div>
+
+            <!-- Rekomendasi Tindakan Sederhana bagi Orang Awam -->
+            <div id="action-advice-banner" class="action-advice-banner advice-hoax">
+              <span class="advice-icon">🛑</span>
+              <div class="advice-text">
+                <strong id="advice-title">REKOMENDASI AI: JANGAN DISEBARKAN!</strong>
+                <p id="advice-desc">Narasi ini terbukti tidak akurat dan mengandung manipulasi psikologis. Gunakan teks klarifikasi di tab "Klarifikasi Siap Kirim" untuk meluruskan di grup WhatsApp.</p>
+              </div>
             </div>
 
             <!-- Spidometer Arc Psikologis -->
@@ -221,7 +274,7 @@
               </svg>
               <div class="gauge-score-display">
                 <h3 id="gauge-score-num">0%</h3>
-                <p id="gauge-type-label">Probabilitas Posterior MNB</p>
+                <p id="gauge-type-label">Tingkat Kepastian AI</p>
               </div>
             </div>
 
@@ -230,171 +283,192 @@
               <div>Skor Fakta: <span id="score-fact-pct" class="prob-fact-val">0%</span></div>
             </div>
 
-            <!-- Stabilo Teks Interaktif (In-Text Highlighting XAI) -->
-            <div class="interactive-highlight-box">
-              <div class="highlight-header">
-                <span>🔍 Analisis Stabilo Teks (Arahkan Kursor/Sentuh):</span>
-                <span class="highlight-legend">
-                  <span class="legend-badge hoax">● Pemicu Hoaks</span>
-                  <span class="legend-badge fact">● Sinyal Fakta</span>
-                </span>
+            <!-- Studio Tabs Navigation (Navigasi Antar Fitur agar Rapi & Tidak Membingungkan) -->
+            <div class="result-studio-tabs">
+              <button type="button" class="studio-tab-btn active" data-studio="studio-evidence">🔍 Bukti & Kata Kunci</button>
+              <button type="button" class="studio-tab-btn" data-studio="studio-multidim">📊 Multi-Dimensi</button>
+              <button type="button" class="studio-tab-btn" data-studio="studio-action">✍️ Klarifikasi & Cek Silang</button>
+              <button type="button" class="studio-tab-btn" data-studio="studio-cert">📋 Kartu & Dokumen</button>
+            </div>
+
+            <!-- Studio Panel 1: Bukti Kata Kunci, Stabilo & Jaringan -->
+            <div id="studio-evidence" class="studio-panel active">
+              <!-- Stabilo Teks Interaktif -->
+              <div class="interactive-highlight-box">
+                <div class="highlight-header">
+                  <span>🔍 Stabilo Kata Kunci Teks (Arahkan Kursor/Sentuh):</span>
+                  <span class="highlight-legend">
+                    <span class="legend-badge hoax">● Pemicu Hoaks</span>
+                    <span class="legend-badge fact">● Sinyal Fakta</span>
+                  </span>
+                </div>
+                <div id="highlighted-text-content" class="highlighted-text">
+                  <em style="color:#94a3b8; font-size:12px;">Teks berita yang dianalisis akan ditampilkan dengan stabilo kata kunci di sini...</em>
+                </div>
               </div>
-              <div id="highlighted-text-content" class="highlighted-text">
-                <em style="color:#94a3b8; font-size:12px;">Teks berita yang dianalisis akan ditampilkan dengan stabilo kata kunci di sini...</em>
+
+              <!-- Explainable AI (LIME Feature Words) -->
+              <div class="xai-section">
+                <h4>
+                  <span>💡</span> Bobot Kata Pemicu Keputusan AI (Explainable AI):
+                </h4>
+                <div id="xai-chips-list" class="xai-chips"></div>
+              </div>
+
+              <!-- Visualisasi Jaringan Relasi Entitas (Semantic Entity Network) -->
+              <div class="entity-network-box">
+                <div class="entity-network-head">
+                  <h4><span>🕸️</span> Visualisasi Jaringan Semantik Entitas (Node Graph):</h4>
+                  <span class="badge-pill">MNB N-Gram Links</span>
+                </div>
+                <p style="font-size:11px; color:#64748b; margin-bottom:8px;">
+                  Memetakan keterhubungan leksikal antara topik utama, entitas aktor, dan prediktor polaritas disinformasi:
+                </p>
+                <div class="canvas-wrapper">
+                  <canvas id="entity-network-canvas" width="580" height="220"></canvas>
+                </div>
               </div>
             </div>
 
-            <!-- Indikator Analitik Multi-Dimensi -->
-            <div class="multi-dim-section">
-              <h4><span>📊</span> Indikator Analisis Multi-Dimensi:</h4>
-              <div class="multi-dim-grid">
-                <div class="dim-card">
-                  <div class="dim-head"><span>Clickbait Judul</span><strong id="dim-cb-val">0%</strong></div>
-                  <div class="dim-bar-track"><div id="dim-cb-bar" class="dim-bar-fill orange" style="width:0%"></div></div>
+            <!-- Studio Panel 2: Indikator Multi-Dimensi & Kerentanan Demografis -->
+            <div id="studio-multidim" class="studio-panel">
+              <!-- Indikator Analitik Multi-Dimensi -->
+              <div class="multi-dim-section">
+                <h4><span>📊</span> Indikator Analisis Multi-Dimensi:</h4>
+                <div class="multi-dim-grid">
+                  <div class="dim-card">
+                    <div class="dim-head"><span>Clickbait Judul</span><strong id="dim-cb-val">0%</strong></div>
+                    <div class="dim-bar-track"><div id="dim-cb-bar" class="dim-bar-fill orange" style="width:0%"></div></div>
+                  </div>
+                  <div class="dim-card">
+                    <div class="dim-head"><span>Urgensi Palsu</span><strong id="dim-urg-val">0%</strong></div>
+                    <div class="dim-bar-track"><div id="dim-urg-bar" class="dim-bar-fill red" style="width:0%"></div></div>
+                  </div>
+                  <div class="dim-card">
+                    <div class="dim-head"><span>Reputasi Sumber</span><strong id="dim-rep-val">0%</strong></div>
+                    <div class="dim-bar-track"><div id="dim-rep-bar" class="dim-bar-fill green" style="width:0%"></div></div>
+                  </div>
+                  <div class="dim-card">
+                    <div class="dim-head"><span>Dominasi Emosi</span><strong id="dim-emo-val">Netral</strong></div>
+                    <div class="dim-emo-pills">
+                      <span id="dim-emo-fear" class="emo-tag">Ketakutan: 0%</span>
+                      <span id="dim-emo-anger" class="emo-tag">Kemarahan: 0%</span>
+                    </div>
+                  </div>
                 </div>
-                <div class="dim-card">
-                  <div class="dim-head"><span>Urgensi Palsu</span><strong id="dim-urg-val">0%</strong></div>
-                  <div class="dim-bar-track"><div id="dim-urg-bar" class="dim-bar-fill red" style="width:0%"></div></div>
+              </div>
+
+              <!-- Profil Kerentanan Demografis & Vektor Psikologis -->
+              <div class="demographic-vulnerability-box" id="demographic-box">
+                <h4><span>👥</span> Profil Kerentanan Demografis & Vektor Psikologis:</h4>
+                <div class="vuln-grid">
+                  <div class="vuln-card">
+                    <span class="vuln-label">Target Audiens Rentan</span>
+                    <strong id="vuln-target-val">Lansia & Grup Komunitas WhatsApp</strong>
+                  </div>
+                  <div class="vuln-card">
+                    <span class="vuln-label">Indeks Kerentanan</span>
+                    <strong id="vuln-score-val" style="color:#dc2626;">Tinggi (88%)</strong>
+                  </div>
                 </div>
-                <div class="dim-card">
-                  <div class="dim-head"><span>Reputasi Sumber</span><strong id="dim-rep-val">0%</strong></div>
-                  <div class="dim-bar-track"><div id="dim-rep-bar" class="dim-bar-fill green" style="width:0%"></div></div>
-                </div>
-                <div class="dim-card">
-                  <div class="dim-head"><span>Dominasi Emosi</span><strong id="dim-emo-val">Netral</strong></div>
-                  <div class="dim-emo-pills">
-                    <span id="dim-emo-fear" class="emo-tag">Ketakutan: 0%</span>
-                    <span id="dim-emo-anger" class="emo-tag">Kemarahan: 0%</span>
+                <div class="vuln-detail">
+                  <div style="margin-bottom:6px;">
+                    <span style="font-weight:700; color:#475569; font-size:11px;">Vektor Manipulasi:</span>
+                    <span id="vuln-vector-val" style="font-size:11px; color:#1e293b;">Kekhawatiran Kesehatan & Manipulasi Empati</span>
+                  </div>
+                  <div>
+                    <span style="font-weight:700; color:#475569; font-size:11px;">Strategi Edukasi:</span>
+                    <span id="vuln-strategy-val" style="font-size:11px; color:#059669;">Gunakan pendekatan persuasif santun, hindari konfrontasi langsung.</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Explainable AI (LIME Feature Words) -->
-            <div class="xai-section">
-              <h4>
-                <span>💡</span> Kata Kunci Pemicu Keputusan AI (XAI):
-              </h4>
-              <div id="xai-chips-list" class="xai-chips"></div>
-            </div>
+            <!-- Studio Panel 3: Narasi Klarifikasi & Cek Silang Satu-Klik -->
+            <div id="studio-action" class="studio-panel">
+              <!-- Generator Narasi Klarifikasi Otomatis (Counter-Narrative) -->
+              <div class="counter-narrative-section" id="counter-narrative-box">
+                <div class="cn-head">
+                  <h4><span>✍️</span> Teks Klarifikasi Siap Kirim (Pilih Gaya):</h4>
+                  <span class="badge-pill green">AI Counter-Fact</span>
+                </div>
+                <div class="cn-tabs">
+                  <button class="cn-tab-btn active" data-style="whatsapp">💬 WhatsApp Santun</button>
+                  <button class="cn-tab-btn" data-style="formal">🏛️ Formal Humas</button>
+                  <button class="cn-tab-btn" data-style="social">📱 Medsos (X / IG)</button>
+                </div>
+                <div class="cn-content-box">
+                  <textarea id="cn-text-output" readonly placeholder="Narasi klarifikasi akan disusun secara otomatis oleh AI di sini..."></textarea>
+                  <div class="cn-actions">
+                    <button id="btn-copy-cn" class="btn-primary" style="padding:7px 14px; font-size:11px; margin:0;">
+                      <span>📋</span> Salin Narasi Klarifikasi
+                    </button>
+                    <span id="cn-copy-toast" class="copy-toast" style="display:none;">✓ Berhasil disalin! Siap dibagikan ke WhatsApp.</span>
+                  </div>
+                </div>
+              </div>
 
-            <!-- Visualisasi Jaringan Relasi Entitas (Semantic Entity Network) -->
-            <div class="entity-network-box">
-              <div class="entity-network-head">
-                <h4><span>🕸️</span> Visualisasi Jaringan Semantik Entitas (Node Graph):</h4>
-                <span class="badge-pill">MNB N-Gram Links</span>
-              </div>
-              <p style="font-size:11px; color:#64748b; margin-bottom:8px;">
-                Memetakan keterhubungan leksikal antara topik utama, entitas aktor, dan prediktor polaritas disinformasi:
-              </p>
-              <div class="canvas-wrapper">
-                <canvas id="entity-network-canvas" width="580" height="220"></canvas>
-              </div>
-            </div>
-
-            <!-- Profil Kerentanan Demografis & Vektor Psikologis -->
-            <div class="demographic-vulnerability-box" id="demographic-box">
-              <h4><span>👥</span> Profil Kerentanan Demografis & Vektor Psikologis:</h4>
-              <div class="vuln-grid">
-                <div class="vuln-card">
-                  <span class="vuln-label">Target Audiens Rentan</span>
-                  <strong id="vuln-target-val">Lansia & Grup Komunitas WhatsApp</strong>
-                </div>
-                <div class="vuln-card">
-                  <span class="vuln-label">Indeks Kerentanan</span>
-                  <strong id="vuln-score-val" style="color:#dc2626;">Tinggi (88%)</strong>
-                </div>
-              </div>
-              <div class="vuln-detail">
-                <div style="margin-bottom:6px;">
-                  <span style="font-weight:700; color:#475569; font-size:11px;">Vektor Manipulasi:</span>
-                  <span id="vuln-vector-val" style="font-size:11px; color:#1e293b;">Kekhawatiran Kesehatan & Manipulasi Empati</span>
-                </div>
-                <div>
-                  <span style="font-weight:700; color:#475569; font-size:11px;">Strategi Edukasi:</span>
-                  <span id="vuln-strategy-val" style="font-size:11px; color:#059669;">Gunakan pendekatan persuasif santun, hindari konfrontasi langsung.</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Generator Narasi Klarifikasi Otomatis (Counter-Narrative) -->
-            <div class="counter-narrative-section" id="counter-narrative-box">
-              <div class="cn-head">
-                <h4><span>✍️</span> Generator Narasi Klarifikasi Resmi (Siap Bagikan):</h4>
-                <span class="badge-pill green">AI Generated Counter-Fact</span>
-              </div>
-              <div class="cn-tabs">
-                <button class="cn-tab-btn active" data-style="whatsapp">💬 WhatsApp Santun</button>
-                <button class="cn-tab-btn" data-style="formal">🏛️ Formal Humas</button>
-                <button class="cn-tab-btn" data-style="social">📱 Medsos (X / IG)</button>
-              </div>
-              <div class="cn-content-box">
-                <textarea id="cn-text-output" readonly placeholder="Narasi klarifikasi akan disusun secara otomatis oleh AI di sini..."></textarea>
-                <div class="cn-actions">
-                  <button id="btn-copy-cn" class="btn-primary" style="padding:7px 14px; font-size:11px; margin:0;">
-                    <span>📋</span> Salin Narasi Klarifikasi
-                  </button>
-                  <span id="cn-copy-toast" class="copy-toast" style="display:none;">✓ Berhasil disalin!</span>
+              <!-- Pintasan Cek Silang Multikanal (One-Click Fact-Check Deep Link) -->
+              <div class="cross-reference-section">
+                <h4><span>🌐</span> Cek Silang di Portal Terverifikasi (1-Klik Langsung Buka):</h4>
+                <p style="font-size:11px; color:#64748b; margin-bottom:8px;">
+                  Bandingkan langsung dengan hasil investigasi pemeriksa fakta independen dan otoritas negara:
+                </p>
+                <div class="cross-ref-buttons">
+                  <a id="btn-ref-mafindo" target="_blank" rel="noopener noreferrer" class="cross-ref-btn ref-mafindo">
+                    <span>🔍</span> MAFINDO (TurnBackHoax)
+                  </a>
+                  <a id="btn-ref-google" target="_blank" rel="noopener noreferrer" class="cross-ref-btn ref-google">
+                    <span>🌐</span> Google Fact Check
+                  </a>
+                  <a id="btn-ref-kominfo" href="https://aduankonten.id/" target="_blank" rel="noopener noreferrer" class="cross-ref-btn ref-kominfo">
+                    <span>🏛️</span> Aduan Konten Kominfo
+                  </a>
+                  <a id="btn-ref-kompas" target="_blank" rel="noopener noreferrer" class="cross-ref-btn ref-kompas">
+                    <span>📰</span> Cek Fakta Kompas
+                  </a>
                 </div>
               </div>
             </div>
 
-            <!-- Pintasan Cek Silang Multikanal (One-Click Fact-Check Deep Link) -->
-            <div class="cross-reference-section">
-              <h4><span>🌐</span> Pintasan Cek Silang Portal Terakreditasi (1-Klik):</h4>
-              <p style="font-size:11px; color:#64748b; margin-bottom:8px;">
-                Cari klarifikasi dan rujukan arsip resmi langsung di basis data pemeriksa fakta terverifikasi:
-              </p>
-              <div class="cross-ref-buttons">
-                <a id="btn-ref-mafindo" target="_blank" rel="noopener noreferrer" class="cross-ref-btn ref-mafindo">
-                  <span>🔍</span> MAFINDO (TurnBackHoax)
-                </a>
-                <a id="btn-ref-google" target="_blank" rel="noopener noreferrer" class="cross-ref-btn ref-google">
-                  <span>🌐</span> Google Fact Check
-                </a>
-                <a id="btn-ref-kominfo" href="https://aduankonten.id/" target="_blank" rel="noopener noreferrer" class="cross-ref-btn ref-kominfo">
-                  <span>🏛️</span> Aduan Konten Kominfo
-                </a>
-                <a id="btn-ref-kompas" target="_blank" rel="noopener noreferrer" class="cross-ref-btn ref-kompas">
-                  <span>📰</span> Cek Fakta Kompas
-                </a>
+            <!-- Studio Panel 4: Kartu Fakta, Sertifikat Forensik & Feedback -->
+            <div id="studio-cert" class="studio-panel">
+              <!-- Shareable Fact Card Preview -->
+              <div class="fact-card-preview" id="fact-card-box">
+                <div class="fact-card-header">
+                  <span>🛡️ CEKHOAKS VERIFIKASI RESMI</span>
+                  <span id="fc-meta">Probabilitas: 88%</span>
+                </div>
+                <div class="fact-card-verdict" id="fc-verdict">⚠️ PERINGATAN HOAKS</div>
+                <div class="fact-card-title" id="fc-title">"Judul berita akan dirender di sini..."</div>
+                <div class="fact-card-footer">
+                  <span>Saring Sebelum Sharing • CekHoaks Mobile</span>
+                  <span>Didukung Multinomial Naive Bayes</span>
+                </div>
+              </div>
+
+              <div class="card-actions">
+                <button id="btn-copy-card-text" class="btn-secondary">
+                  <span>📋</span> Salin Teks
+                </button>
+                <button id="btn-download-fact-card" class="btn-secondary">
+                  <span>🖼️</span> Unduh Kartu Gambar
+                </button>
+                <button id="btn-open-cert" class="btn-secondary" onclick="openForensicCertificate()">
+                  <span>📄</span> Cetak Sertifikat Forensik
+                </button>
+              </div>
+
+              <!-- Crowdsourced Feedback -->
+              <div class="feedback-box">
+                <span style="font-weight:600;">Apakah hasil prediksi ini sesuai dengan fakta menurut Anda?</span>
+                <div class="feedback-buttons">
+                  <button id="btn-feedback-agree" class="btn-feedback agree">👍 Setuju dengan AI</button>
+                  <button id="btn-feedback-disagree" class="btn-feedback disagree">👎 Sanggah (Bukan Hoaks)</button>
+                </div>
               </div>
             </div>
 
-            <!-- Shareable Fact Card Preview -->
-            <div class="fact-card-preview" id="fact-card-box">
-              <div class="fact-card-header">
-                <span>🛡️ CEKHOAKS VERIFIKASI RESMI</span>
-                <span id="fc-meta">Probabilitas: 88%</span>
-              </div>
-              <div class="fact-card-verdict" id="fc-verdict">⚠️ PERINGATAN HOAKS</div>
-              <div class="fact-card-title" id="fc-title">"Judul berita akan dirender di sini..."</div>
-              <div class="fact-card-footer">
-                <span>Saring Sebelum Sharing • CekHoaks Mobile</span>
-                <span>Didukung Multinomial Naive Bayes</span>
-              </div>
-            </div>
-
-            <div class="card-actions">
-              <button id="btn-copy-card-text" class="btn-secondary">
-                <span>📋</span> Salin Teks
-              </button>
-              <button id="btn-download-fact-card" class="btn-secondary">
-                <span>🖼️</span> Unduh Kartu
-              </button>
-              <button id="btn-open-cert" class="btn-secondary" onclick="openForensicCertificate()">
-                <span>📄</span> Sertifikat Forensik
-              </button>
-            </div>
-
-            <!-- Crowdsourced Feedback -->
-            <div class="feedback-box">
-              <span style="font-weight:600;">Apakah hasil prediksi ini sesuai dengan fakta?</span>
-              <div class="feedback-buttons">
-                <button id="btn-feedback-agree" class="btn-feedback agree">👍 Setuju</button>
-                <button id="btn-feedback-disagree" class="btn-feedback disagree">👎 Sanggah (Bukan Hoaks)</button>
-              </div>
-            </div>
           </section>
 
         </div>
@@ -739,6 +813,93 @@
           <button class="btn-primary" onclick="window.print()">
             <span>🖨️</span> Cetak / Simpan Dokumen PDF
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Panduan Penggunaan Mudah bagi Orang Awam -->
+  <div id="modal-guide" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>📖 Panduan Praktis Mendeteksi Hoaks untuk Pemula</h3>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:12px; color:#475569; margin-bottom:12px;">
+          Gunakan 4 prinsip sederhana berikut setiap kali Anda menerima pesan mencurigakan di media sosial atau WhatsApp:
+        </p>
+
+        <div class="guide-cards-list">
+          <div class="guide-item">
+            <span class="guide-num">1</span>
+            <div>
+              <strong>Waspadai Huruf Kapital & Tanda Seru Berlebih (Clickbait)</strong>
+              <p>Judul seperti <em>"VIRAL!! SEBARKAN SEBELUM DIHAPUS!!"</em> sengaja memancing emosi panik agar Anda segera membagikannya tanpa berpikir logis.</p>
+            </div>
+          </div>
+
+          <div class="guide-item">
+            <span class="guide-num">2</span>
+            <div>
+              <strong>Periksa Keaslian Domain & Sumber Berita</strong>
+              <p>Portal berita terverifikasi resmi Dewan Pers selalu memiliki alamat jelas (misal <em>detik.com</em>, <em>kompas.com</em>, <em>antaranews.com</em>, atau domain pemerintah <em>.go.id</em>). Hati-hati dengan situs blogspot atau tautan mencurigakan.</p>
+            </div>
+          </div>
+
+          <div class="guide-item">
+            <span class="guide-num">3</span>
+            <div>
+              <strong>Gunakan Fitur "Bersihkan Teks WA" di Web Ini</strong>
+              <p>Salin pesan berantai dari WhatsApp, klik tombol <em>🧹 Bersihkan Teks WA</em> di aplikasi ini untuk membuang tulisan <em>[Forwarded]</em>, lalu tekan <em>Periksa Validitas Berita AI</em>.</p>
+            </div>
+          </div>
+
+          <div class="guide-item">
+            <span class="guide-num">4</span>
+            <div>
+              <strong>Balas dengan Santun Menggunakan Narasi AI</strong>
+              <p>Jika terbukti hoaks, buka tab <em>"✍️ Klarifikasi & Cek Silang"</em>, salin narasi WhatsApp santun yang telah disusun AI, lalu kirimkan kembali ke grup agar orang lain teredukasi tanpa ada perdebatan.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Kamus Literasi Digital & Istilah Hoaks -->
+  <div id="modal-glossary" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>💡 Kamus Cerdas Istilah Cek Fakta & Literasi Digital</h3>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:12px; color:#64748b; margin-bottom:12px;">
+          Pahami perbedaan istilah-istilah disinformasi yang sering digunakan oleh para peneliti dan pemeriksa fakta:
+        </p>
+
+        <div class="glossary-list">
+          <div class="glossary-item">
+            <span class="glossary-term">🚨 Disinformasi</span>
+            <p>Informasi yang <strong>sengaja diciptakan salah</strong> dengan tujuan menipu, memprovokasi, atau mencari keuntungan finansial/politik.</p>
+          </div>
+          <div class="glossary-item">
+            <span class="glossary-term">⚠️ Misinformasi</span>
+            <p>Informasi yang keliru namun <strong>disebarkan oleh orang yang tidak tahu</strong> bahwa info tersebut salah (biasanya disebarkan karena niat baik ingin mengingatkan keluarga).</p>
+          </div>
+          <div class="glossary-item">
+            <span class="glossary-term">🎣 Clickbait (Umpan Klik)</span>
+            <p>Judul berita yang dibuat sensasional, membesar-besarkan fakta, atau menggunakan huruf kapital berlebih semata-mata demi menarik klik pembaca.</p>
+          </div>
+          <div class="glossary-item">
+            <span class="glossary-term">⏳ False Urgency (Urgensi Palsu)</span>
+            <p>Pola manipulasi psikologis dengan memaksa pembaca harus segera membagikan pesan (<em>"viralkan sebelum dihapus"</em>, <em>"bagikan ke 10 grup"</em>).</p>
+          </div>
+          <div class="glossary-item">
+            <span class="glossary-term">🤖 Explainable AI (LIME)</span>
+            <p>Teknologi kecerdasan buatan yang <strong>transparan</strong> dan mampu menjelaskan mengapa suatu kalimat dinilai hoaks dengan menyoroti kata kunci pemicunya.</p>
+          </div>
         </div>
       </div>
     </div>

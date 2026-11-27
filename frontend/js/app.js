@@ -18,6 +18,9 @@ document.addEventListener("DOMContentLoaded", () => {
   initCopilot();
   initCounterNarrativeTabs();
   initArchiveSearch();
+  initStudioTabs();
+  initTextHelpers();
+  initVoiceNarrator();
   updateStatsDashboard();
   loadHistoryFromLocal();
   fetchModelMetrics();
@@ -314,6 +317,32 @@ function renderResult(data) {
   // Update Speedometer Psikologis (Merah = Hoaks, Hijau = Fakta)
   const score = isHoax ? data.hoax_percentage : data.fact_percentage;
   initSpeedometer(score, isHoax ? "hoax" : "fact");
+
+  // Update Action Advice Banner (Rekomendasi Tindakan Sederhana bagi Orang Awam)
+  const adviceBanner = document.getElementById("action-advice-banner");
+  const adviceTitle = document.getElementById("advice-title");
+  const adviceDesc = document.getElementById("advice-desc");
+  if (adviceBanner) {
+    if (isHoax) {
+      adviceBanner.className = "action-advice-banner advice-hoax";
+      adviceTitle.textContent = "🛑 REKOMENDASI AI: JANGAN DISEBARKAN!";
+      adviceDesc.textContent = `Narasi ini ${data.hoax_percentage}% terindikasi hoaks dengan tingkat risiko ${data.risk_level}. Buka tab "Klarifikasi Siap Kirim" untuk meluruskan pesan ini ke grup WhatsApp.`;
+    } else {
+      adviceBanner.className = "action-advice-banner advice-fact";
+      adviceTitle.textContent = "✅ REKOMENDASI AI: AMAN & TERPERCAYA";
+      adviceDesc.textContent = `Berita ini ${data.fact_percentage}% terverifikasi valid dan bersumber dari rujukan kredibel. Aman untuk dibagikan sebagai referensi yang benar.`;
+    }
+  }
+
+  // Reset default Studio Tab ke 'studio-evidence'
+  const studioBtns = document.querySelectorAll(".studio-tab-btn");
+  const studioPanels = document.querySelectorAll(".studio-panel");
+  studioBtns.forEach(b => b.classList.remove("active"));
+  studioPanels.forEach(p => p.classList.remove("active"));
+  const defBtn = document.querySelector('.studio-tab-btn[data-studio="studio-evidence"]');
+  const defPanel = document.getElementById("studio-evidence");
+  if (defBtn) defBtn.classList.add("active");
+  if (defPanel) defPanel.classList.add("active");
 
   // Render Stabilo Teks Interaktif (In-Text Highlighting)
   renderInTextHighlights(data);
@@ -1625,5 +1654,177 @@ async function sendCopilotMessage(userText) {
     container.appendChild(botDiv);
     container.scrollTop = container.scrollHeight;
   }
+}
+
+// 29. Studio Dashboard Tabs Controller
+function initStudioTabs() {
+  const btns = document.querySelectorAll(".result-studio-tabs .studio-tab-btn");
+  btns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      btns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      const targetId = btn.getAttribute("data-studio");
+      document.querySelectorAll(".studio-panel").forEach(p => p.classList.remove("active"));
+      const targetPanel = document.getElementById(targetId);
+      if (targetPanel) {
+        targetPanel.classList.add("active");
+        if (targetId === "studio-evidence" && currentClassification) {
+          setTimeout(() => renderEntityNetworkGraph(currentClassification), 50);
+        }
+      }
+    });
+  });
+}
+
+// 30. Text Helpers: WA Text Cleaner, Clipboard Paste, Clear, Counter
+function initTextHelpers() {
+  const contentInput = document.getElementById("text-content");
+  const titleInput = document.getElementById("text-title");
+  const btnCleanWa = document.getElementById("btn-clean-wa");
+  const btnPasteTitle = document.getElementById("btn-paste-title");
+  const btnPasteContent = document.getElementById("btn-paste-content");
+  const btnClear = document.getElementById("btn-clear-text");
+  const charCounter = document.getElementById("text-char-count");
+  const readTime = document.getElementById("text-read-time");
+
+  function updateCounters() {
+    const text = (contentInput ? contentInput.value : "") + (titleInput ? titleInput.value : "");
+    const len = text.length;
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    const sec = Math.ceil(words / 3);
+    if (charCounter) charCounter.textContent = `${len} karakter (${words} kata)`;
+    if (readTime) readTime.textContent = `~${sec} detik baca`;
+  }
+
+  if (contentInput) contentInput.addEventListener("input", updateCounters);
+  if (titleInput) titleInput.addEventListener("input", updateCounters);
+
+  // Clean WhatsApp Forwarded Junk
+  if (btnCleanWa && contentInput) {
+    btnCleanWa.addEventListener("click", () => {
+      let raw = contentInput.value;
+      if (!raw.trim()) {
+        alert("Masukkan atau tempelkan teks pesan WhatsApp terlebih dahulu!");
+        return;
+      }
+
+      raw = raw.replace(/\[\s*Forwarded\s*\]/gi, "");
+      raw = raw.replace(/\[\s*Diteruskan\s*\]/gi, "");
+      raw = raw.replace(/Diteruskan berkali-kali/gi, "");
+      raw = raw.replace(/Forwarded many times/gi, "");
+      raw = raw.replace(/Forwarded/gi, "");
+      raw = raw.replace(/Diteruskan/gi, "");
+      raw = raw.replace(/\[\d{1,2}[:.]\d{2}[^\]]*\]\s*[^:]*:\s*/g, "");
+      raw = raw.replace(/\d{1,2}\/\d{1,2}\/\d{2,4},\s*\d{1,2}[:.]\d{2}\s*-\s*[^:]*:\s*/g, "");
+      raw = raw.replace(/\n\s*\n\s*\n/g, "\n\n").trim();
+
+      contentInput.value = raw;
+      updateCounters();
+
+      btnCleanWa.textContent = "✓ Teks WA Bersih!";
+      setTimeout(() => { btnCleanWa.textContent = "🧹 Bersihkan Teks WA"; }, 1800);
+    });
+  }
+
+  // Paste Title
+  if (btnPasteTitle && titleInput) {
+    btnPasteTitle.addEventListener("click", async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          titleInput.value = text.trim();
+          updateCounters();
+        }
+      } catch (e) {
+        alert("Izinkan akses clipboard browser untuk menempel otomatis.");
+      }
+    });
+  }
+
+  // Paste Content
+  if (btnPasteContent && contentInput) {
+    btnPasteContent.addEventListener("click", async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          contentInput.value = text.trim();
+          updateCounters();
+        }
+      } catch (e) {
+        alert("Izinkan akses clipboard browser untuk menempel otomatis.");
+      }
+    });
+  }
+
+  // Clear all
+  if (btnClear) {
+    btnClear.addEventListener("click", () => {
+      if (titleInput) titleInput.value = "";
+      if (contentInput) contentInput.value = "";
+      updateCounters();
+    });
+  }
+}
+
+// 31. Voice Narrator (Web Speech Synthesis API dalam Bahasa Indonesia)
+let isSpeaking = false;
+
+function initVoiceNarrator() {
+  const btnVoice = document.getElementById("btn-voice-read");
+  const icon = document.getElementById("voice-icon");
+  const label = document.getElementById("voice-label");
+  if (!btnVoice) return;
+
+  btnVoice.addEventListener("click", () => {
+    if (!('speechSynthesis' in window)) {
+      alert("Browser Anda belum mendukung fitur sintesis suara (Web Speech API).");
+      return;
+    }
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      isSpeaking = false;
+      if (icon) icon.textContent = "🔊";
+      if (label) label.textContent = "Dengarkan AI";
+      return;
+    }
+
+    if (!currentClassification) {
+      alert("Belum ada berita yang diperiksa untuk dibacakan.");
+      return;
+    }
+
+    const d = currentClassification;
+    const isHoax = d.predicted_label === "HOAKS";
+    const speechText = isHoax 
+      ? `Hasil analisis CekHoaks AI: Berita dengan judul "${d.title || 'ini'}" terindikasi hoaks dengan tingkat keyakinan ${d.hoax_percentage} persen. Tingkat risiko: ${d.risk_level}. Rekomendasi tindakan: jangan disebarluaskan ke grup WhatsApp keluarga, dan gunakan teks klarifikasi resmi untuk meluruskannya.`
+      : `Hasil analisis CekHoaks AI: Berita dengan judul "${d.title || 'ini'}" terverifikasi fakta resmi dengan tingkat keyakinan ${d.fact_percentage} persen. Berita ini kredibel dan aman untuk dibagikan.`;
+
+    const utterance = new SpeechSynthesisUtterance(speechText);
+    utterance.lang = "id-ID";
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    utterance.onstart = () => {
+      isSpeaking = true;
+      if (icon) icon.textContent = "⏹️";
+      if (label) label.textContent = "Hentikan Suara";
+    };
+
+    utterance.onend = () => {
+      isSpeaking = false;
+      if (icon) icon.textContent = "🔊";
+      if (label) label.textContent = "Dengarkan AI";
+    };
+
+    utterance.onerror = () => {
+      isSpeaking = false;
+      if (icon) icon.textContent = "🔊";
+      if (label) label.textContent = "Dengarkan AI";
+    };
+
+    window.speechSynthesis.speak(utterance);
+  });
 }
 

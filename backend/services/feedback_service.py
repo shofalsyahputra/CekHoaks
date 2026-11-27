@@ -33,10 +33,15 @@ class DatabaseService:
                 id TEXT PRIMARY KEY,
                 email TEXT UNIQUE NOT NULL,
                 name TEXT NOT NULL,
-                role TEXT DEFAULT 'user',
+                password_hash TEXT DEFAULT '',
+                role TEXT DEFAULT 'Penyelidik Fakta',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """)
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN password_hash TEXT DEFAULT ''")
+            except Exception:
+                pass
 
             # 2. Tabel classification_logs
             cursor.execute("""
@@ -154,4 +159,91 @@ class DatabaseService:
                     res["hyperparameters"] = json.loads(res["hyperparameters"])
                 return res
             return None
+
+    # --- Autentikasi Pengguna (Gmail, Password & Google Auth) ---
+    def register_user(self, name: str, email: str, password_hash: str) -> Dict[str, Any]:
+        user_id = str(uuid.uuid4())
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            # Cek apakah email sudah terdaftar
+            cursor.execute("SELECT * FROM users WHERE email = ?", (email.lower(),))
+            if cursor.fetchone():
+                return {"success": False, "error": "Email ini sudah terdaftar. Silakan langsung login."}
+            
+            cursor.execute("""
+            INSERT INTO users (id, email, name, password_hash, role)
+            VALUES (?, ?, ?, ?, ?)
+            """, (user_id, email.lower(), name, password_hash, "Penyelidik Fakta"))
+            conn.commit()
+            
+        return {
+            "success": True,
+            "user": {
+                "id": user_id,
+                "email": email.lower(),
+                "name": name,
+                "role": "Penyelidik Fakta",
+                "avatar": f"https://api.dicebear.com/7.x/initials/svg?seed={name}"
+            }
+        }
+
+    def authenticate_user(self, email: str, password_hash: str) -> Dict[str, Any]:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM users WHERE email = ?", (email.lower(),))
+            row = cursor.fetchone()
+            if not row:
+                return {"success": False, "error": "Akun dengan email ini belum terdaftar."}
+            
+            user = dict(row)
+            if user.get("password_hash") != password_hash:
+                return {"success": False, "error": "Kata sandi yang Anda masukkan salah."}
+            
+            return {
+                "success": True,
+                "user": {
+                    "id": user["id"],
+                    "email": user["email"],
+                    "name": user["name"],
+                    "role": user.get("role", "Penyelidik Fakta"),
+                    "avatar": f"https://api.dicebear.com/7.x/initials/svg?seed={user['name']}"
+                }
+            }
+
+    def google_auth_user(self, email: str, name: str) -> Dict[str, Any]:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM users WHERE email = ?", (email.lower(),))
+            row = cursor.fetchone()
+            if row:
+                user = dict(row)
+                return {
+                    "success": True,
+                    "user": {
+                        "id": user["id"],
+                        "email": user["email"],
+                        "name": user["name"],
+                        "role": user.get("role", "Penyelidik Fakta Terverifikasi"),
+                        "avatar": f"https://api.dicebear.com/7.x/initials/svg?seed={user['name']}"
+                    }
+                }
+            
+            # Jika belum ada, daftarkan otomatis via Google
+            user_id = str(uuid.uuid4())
+            cursor.execute("""
+            INSERT INTO users (id, email, name, password_hash, role)
+            VALUES (?, ?, ?, ?, ?)
+            """, (user_id, email.lower(), name, "google_oauth_verified", "Penyelidik Fakta Terverifikasi"))
+            conn.commit()
+
+            return {
+                "success": True,
+                "user": {
+                    "id": user_id,
+                    "email": email.lower(),
+                    "name": name,
+                    "role": "Penyelidik Fakta Terverifikasi",
+                    "avatar": f"https://api.dicebear.com/7.x/initials/svg?seed={name}"
+                }
+            }
 

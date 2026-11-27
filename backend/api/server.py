@@ -159,25 +159,6 @@ class AppRequestHandler(BaseHTTPRequestHandler):
         except Exception:
             body = {}
 
-        # 1. POST /api/v1/auth/login
-        if path == "/api/v1/auth/login":
-            email = body.get("email", "")
-            password = body.get("password", "")
-            # Simulasi autentikasi JWT token
-            token = f"jwt_token_demo_{int(time.time())}"
-            self._send_json(200, {
-                "success": True,
-                "message": "Autentikasi berhasil.",
-                "token": token,
-                "user": {
-                    "id": "usr-demo-001",
-                    "email": email or "user@tugas.mobile",
-                    "name": "Pengguna Mobile",
-                    "role": "researcher" if "admin" in email else "user"
-                }
-            })
-            return
-
         # 2. POST /api/v1/classify/text (Rute Inti)
         if path == "/api/v1/classify/text":
             title = body.get("title", "").strip()
@@ -284,7 +265,44 @@ class AppRequestHandler(BaseHTTPRequestHandler):
             self._send_json(200, feed_data)
             return
 
-        # 8. POST /api/v1/research/train (Re-train Engine)
+        # 8. POST /api/v1/auth/login (Login Gmail & Password atau Google OAuth)
+        if path == "/api/v1/auth/login":
+            email = body.get("email", "").strip()
+            password = body.get("password", "")
+            is_google = body.get("is_google", False)
+            name = body.get("name", "Pengguna Google")
+
+            if not email:
+                self._send_json(400, {"success": False, "error": "Email/Gmail wajib diisi."})
+                return
+
+            if is_google:
+                auth_res = db_service.google_auth_user(email, name)
+            else:
+                pwd_hash = hashlib.sha256(password.encode("utf-8")).hexdigest()
+                auth_res = db_service.authenticate_user(email, pwd_hash)
+
+            status_code = 200 if auth_res.get("success") else 401
+            self._send_json(status_code, auth_res)
+            return
+
+        # 9. POST /api/v1/auth/register (Pendaftaran Akun Baru)
+        if path == "/api/v1/auth/register":
+            name = body.get("name", "").strip()
+            email = body.get("email", "").strip()
+            password = body.get("password", "")
+
+            if not name or not email or not password:
+                self._send_json(400, {"success": False, "error": "Nama, email, dan password wajib diisi."})
+                return
+
+            pwd_hash = hashlib.sha256(password.encode("utf-8")).hexdigest()
+            reg_res = db_service.register_user(name, email, pwd_hash)
+            status_code = 200 if reg_res.get("success") else 400
+            self._send_json(status_code, reg_res)
+            return
+
+        # 10. POST /api/v1/research/train (Re-train Engine)
         if path == "/api/v1/research/train":
             from train_model import train
             train()

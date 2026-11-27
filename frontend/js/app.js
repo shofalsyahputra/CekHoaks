@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initStudioTabs();
   initTextHelpers();
   initVoiceNarrator();
+  initAuth();
   updateStatsDashboard();
   loadHistoryFromLocal();
   fetchModelMetrics();
@@ -1180,6 +1181,21 @@ function openForensicCertificate() {
   document.getElementById("cert-hash-display").textContent = "SHA-256: " + (cert.sha256 || "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855").substring(0, 24) + "...";
   document.getElementById("cert-time-val").textContent = cert.timestamp || data.evaluated_at || new Date().toLocaleString("id-ID");
 
+  const certAuditor = document.getElementById("cert-auditor-val");
+  if (certAuditor) {
+    const savedUser = localStorage.getItem("cekhoaks_auth_user");
+    if (savedUser) {
+      try {
+        const u = JSON.parse(savedUser);
+        certAuditor.textContent = `${u.name || u.email} (${u.role || 'Penyelidik Terverifikasi'})`;
+      } catch (e) {
+        certAuditor.textContent = "Penyelidik Tamu (Guest)";
+      }
+    } else {
+      certAuditor.textContent = "Penyelidik Tamu (Guest)";
+    }
+  }
+
   const verdictTitle = document.getElementById("cert-verdict-title");
   const verdictProb = document.getElementById("cert-verdict-prob");
   const banner = document.getElementById("cert-banner");
@@ -1828,3 +1844,236 @@ function initVoiceNarrator() {
   });
 }
 
+
+
+// 26. Autentikasi Pengguna (Login Gmail & Password / Google OAuth)
+function initAuth() {
+  const modalAuth = document.getElementById("modal-auth");
+  const modalProfile = document.getElementById("modal-user-profile");
+  const tabLogin = document.getElementById("tab-auth-login");
+  const tabRegister = document.getElementById("tab-auth-register");
+  const authTitle = document.getElementById("auth-modal-title");
+  const groupName = document.getElementById("group-auth-name");
+  const inputName = document.getElementById("auth-input-name");
+  const inputEmail = document.getElementById("auth-input-email");
+  const inputPassword = document.getElementById("auth-input-password");
+  const btnTogglePwd = document.getElementById("btn-toggle-pwd");
+  const authForm = document.getElementById("auth-form");
+  const authErrorBox = document.getElementById("auth-error-box");
+  const btnSubmit = document.getElementById("btn-submit-auth");
+  const submitLabel = document.getElementById("auth-submit-label");
+  const btnGoogle = document.getElementById("btn-google-auth");
+  const btnLogout = document.getElementById("btn-logout");
+  const btnOpenLogin = document.getElementById("btn-open-login");
+  const userBadge = document.getElementById("user-profile-badge");
+  const headerAvatar = document.getElementById("header-avatar");
+  const headerUsername = document.getElementById("header-username");
+  const profileAvatar = document.getElementById("profile-modal-avatar");
+  const profileName = document.getElementById("profile-modal-name");
+  const profileEmail = document.getElementById("profile-modal-email");
+  const profileRole = document.getElementById("profile-modal-role");
+  const profileTotal = document.getElementById("profile-pstat-total");
+
+  let authMode = "login"; // "login" | "register"
+
+  function updateAuthUI(user) {
+    if (user && user.email) {
+      if (btnOpenLogin) btnOpenLogin.style.display = "none";
+      if (userBadge) userBadge.style.display = "inline-flex";
+      
+      const avatarUrl = user.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.name || user.email)}`;
+      if (headerAvatar) headerAvatar.src = avatarUrl;
+      if (headerUsername) headerUsername.textContent = user.name ? user.name.split(" ")[0] : "Analis";
+      if (profileAvatar) profileAvatar.src = avatarUrl;
+      if (profileName) profileName.textContent = user.name || "Penyelidik Fakta";
+      if (profileEmail) profileEmail.textContent = user.email;
+      if (profileRole) profileRole.textContent = user.role || "Penyelidik Fakta Terverifikasi";
+
+      try {
+        const rawHistory = localStorage.getItem("cekhoaks_history");
+        const list = rawHistory ? JSON.parse(rawHistory) : [];
+        if (profileTotal) profileTotal.textContent = list.length;
+      } catch (e) {
+        if (profileTotal) profileTotal.textContent = "0";
+      }
+    } else {
+      if (btnOpenLogin) btnOpenLogin.style.display = "inline-flex";
+      if (userBadge) userBadge.style.display = "none";
+    }
+  }
+
+  // Cek sesi user tersimpan di local storage
+  try {
+    const savedUser = localStorage.getItem("cekhoaks_auth_user");
+    if (savedUser) {
+      const u = JSON.parse(savedUser);
+      updateAuthUI(u);
+    } else {
+      updateAuthUI(null);
+    }
+  } catch (e) {
+    updateAuthUI(null);
+  }
+
+  // Switch ke Tab Login
+  if (tabLogin) {
+    tabLogin.addEventListener("click", () => {
+      authMode = "login";
+      tabLogin.classList.add("active");
+      if (tabRegister) tabRegister.classList.remove("active");
+      if (groupName) groupName.style.display = "none";
+      if (authTitle) authTitle.textContent = "🔐 Masuk ke CekHoaks AI";
+      if (submitLabel) submitLabel.textContent = "Masuk ke Sistem";
+      if (authErrorBox) authErrorBox.style.display = "none";
+    });
+  }
+
+  // Switch ke Tab Register
+  if (tabRegister) {
+    tabRegister.addEventListener("click", () => {
+      authMode = "register";
+      tabRegister.classList.add("active");
+      if (tabLogin) tabLogin.classList.remove("active");
+      if (groupName) groupName.style.display = "block";
+      if (authTitle) authTitle.textContent = "✨ Buat Akun CekHoaks Baru";
+      if (submitLabel) submitLabel.textContent = "Daftar Akun Baru";
+      if (authErrorBox) authErrorBox.style.display = "none";
+    });
+  }
+
+  // Toggle Tampilkan / Sembunyikan Password
+  if (btnTogglePwd && inputPassword) {
+    btnTogglePwd.addEventListener("click", () => {
+      if (inputPassword.type === "password") {
+        inputPassword.type = "text";
+        btnTogglePwd.textContent = "🙈";
+      } else {
+        inputPassword.type = "password";
+        btnTogglePwd.textContent = "👁️";
+      }
+    });
+  }
+
+  // 1-Click Google OAuth simulation
+  if (btnGoogle) {
+    btnGoogle.addEventListener("click", async () => {
+      let emailChoice = inputEmail && inputEmail.value.includes("@") ? inputEmail.value.trim() : null;
+      if (!emailChoice) {
+        emailChoice = prompt("Masukkan alamat Gmail Anda untuk simulasi masuk akun Google:", "shofalsyahputra@gmail.com");
+      }
+      if (!emailChoice) return;
+
+      const userName = emailChoice.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+
+      btnGoogle.disabled = true;
+      btnGoogle.style.opacity = "0.7";
+
+      try {
+        const resp = await fetch(`${API_BASE}/api/v1/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: emailChoice,
+            name: userName,
+            is_google: true
+          })
+        });
+        const data = await resp.json();
+
+        if ((data.success || data.status === "success") && data.user) {
+          localStorage.setItem("cekhoaks_auth_user", JSON.stringify(data.user));
+          updateAuthUI(data.user);
+          closeModal("modal-auth");
+          playSound("click");
+          alert(`Selamat datang kembali, ${data.user.name}! Anda berhasil login dengan Gmail.`);
+        } else {
+          throw new Error(data.error || "Gagal melakukan autentikasi Google.");
+        }
+      } catch (err) {
+        if (authErrorBox) {
+          authErrorBox.textContent = "Koneksi Google Error: " + err.message;
+          authErrorBox.style.display = "block";
+        }
+      } finally {
+        btnGoogle.disabled = false;
+        btnGoogle.style.opacity = "1";
+      }
+    });
+  }
+
+  // Submit Form Login / Register
+  if (authForm) {
+    authForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = inputEmail ? inputEmail.value.trim() : "";
+      const password = inputPassword ? inputPassword.value : "";
+      const name = inputName ? inputName.value.trim() : "";
+
+      if (!email || !password) {
+        if (authErrorBox) {
+          authErrorBox.textContent = "Email dan kata sandi wajib diisi!";
+          authErrorBox.style.display = "block";
+        }
+        return;
+      }
+
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.style.opacity = "0.7";
+      }
+      if (authErrorBox) authErrorBox.style.display = "none";
+
+      const endpoint = authMode === "login" ? `${API_BASE}/api/v1/auth/login` : `${API_BASE}/api/v1/auth/register`;
+      const payload = authMode === "login" 
+        ? { email, password }
+        : { name: name || email.split("@")[0], email, password };
+
+      try {
+        const resp = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+
+        if ((data.success || data.status === "success") && data.user) {
+          localStorage.setItem("cekhoaks_auth_user", JSON.stringify(data.user));
+          updateAuthUI(data.user);
+          closeModal("modal-auth");
+          playSound("click");
+          alert(authMode === "login" 
+            ? `Berhasil masuk! Selamat datang kembali, ${data.user.name}.`
+            : `Pendaftaran berhasil! Selamat datang di CekHoaks, ${data.user.name}.`
+          );
+        } else {
+          if (authErrorBox) {
+            authErrorBox.textContent = data.error || "Autentikasi gagal. Silakan periksa kembali data Anda.";
+            authErrorBox.style.display = "block";
+          }
+        }
+      } catch (err) {
+        if (authErrorBox) {
+          authErrorBox.textContent = "Gagal terhubung ke server: " + err.message;
+          authErrorBox.style.display = "block";
+        }
+      } finally {
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          btnSubmit.style.opacity = "1";
+        }
+      }
+    });
+  }
+
+  // Logout
+  if (btnLogout) {
+    btnLogout.addEventListener("click", () => {
+      if (confirm("Apakah Anda yakin ingin keluar dari akun?")) {
+        localStorage.removeItem("cekhoaks_auth_user");
+        updateAuthUI(null);
+        closeModal("modal-user-profile");
+        alert("Anda telah keluar dari akun.");
+      }
+    });
+  }
+}

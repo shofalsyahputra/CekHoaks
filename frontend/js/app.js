@@ -15,6 +15,9 @@ document.addEventListener("DOMContentLoaded", () => {
   initSoundToggle();
   initTrendingNewsFeed();
   initComparisonMode();
+  initCopilot();
+  initCounterNarrativeTabs();
+  initArchiveSearch();
   updateStatsDashboard();
   loadHistoryFromLocal();
   fetchModelMetrics();
@@ -325,6 +328,22 @@ function renderResult(data) {
 
   // Render XAI Chips (Explainable AI Keywords)
   renderXAIChips(data.explanation);
+
+  // Render Visualisasi Jaringan Relasi Semantik Entitas (Canvas Graph)
+  renderEntityNetworkGraph(data);
+
+  // Render Profil Kerentanan Demografis & Vektor Psikologis
+  if (data.multi_dimensional?.demographic_vulnerability) {
+    renderDemographicVulnerability(data.multi_dimensional.demographic_vulnerability);
+  }
+
+  // Render Generator Narasi Klarifikasi Otomatis (Counter-Narrative)
+  if (data.counter_narrative) {
+    renderCounterNarrative(data.counter_narrative);
+  }
+
+  // Perbarui Pintasan Cek Silang Multikanal
+  updateCrossReferenceLinks(data.title);
 
   // Update Fact Card Preview
   updateFactCardPreview(data);
@@ -1207,6 +1226,375 @@ async function analyzeCompareArticle(side) {
     }
   } catch (err) {
     resultContainer.innerHTML = "<div style='padding:8px; color:#dc2626; font-size:11px;'>Gagal menganalisis artikel.</div>";
+  }
+}
+
+// 23. Visualisasi Jaringan Relasi Entitas (Semantic Entity Network on Canvas)
+function renderEntityNetworkGraph(data) {
+  const canvas = document.getElementById("entity-network-canvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.parentElement ? canvas.parentElement.clientWidth : 580;
+  const h = 220;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = `${w}px`;
+  canvas.style.height = `${h}px`;
+  ctx.scale(dpr, dpr);
+
+  ctx.clearRect(0, 0, w, h);
+
+  const isHoax = data.predicted_label === "HOAKS";
+  const terms = (data.explanation?.top_terms || []).slice(0, 7);
+
+  const centerNode = {
+    x: w / 2,
+    y: h / 2,
+    r: 28,
+    label: (data.title ? data.title.split(" ").slice(0, 3).join(" ") : "Topik Berita"),
+    color: isHoax ? "#dc2626" : "#059669",
+    bgColor: isHoax ? "#fee2e2" : "#dcfce7"
+  };
+
+  const nodes = [];
+  const count = Math.max(terms.length, 1);
+  const radiusX = Math.min(w * 0.38, 220);
+  const radiusY = h * 0.34;
+
+  terms.forEach((t, i) => {
+    const angle = (i / count) * Math.PI * 2 - Math.PI / 2;
+    const isTermHoax = t.direction === "HOAKS";
+    nodes.push({
+      x: centerNode.x + Math.cos(angle) * radiusX,
+      y: centerNode.y + Math.sin(angle) * radiusY,
+      r: Math.max(16, Math.min(24, (t.impact_percent || 15) * 0.8)),
+      label: t.term,
+      color: isTermHoax ? "#ef4444" : "#10b981",
+      bgColor: isTermHoax ? "#fef2f2" : "#ecfdf5",
+      isHoax: isTermHoax,
+      impact: t.impact_percent || 20
+    });
+  });
+
+  // Gambar Garis Relasi N-Gram
+  nodes.forEach(node => {
+    ctx.beginPath();
+    ctx.moveTo(centerNode.x, centerNode.y);
+    ctx.lineTo(node.x, node.y);
+    ctx.strokeStyle = node.isHoax ? "rgba(220, 38, 38, 0.35)" : "rgba(16, 185, 129, 0.35)";
+    ctx.lineWidth = Math.max(1.5, (node.impact / 100) * 4);
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  // Gambar Simpul Entitas Leksikal
+  nodes.forEach(node => {
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, node.r + 3, 0, Math.PI * 2);
+    ctx.fillStyle = node.bgColor;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, node.r, 0, Math.PI * 2);
+    ctx.fillStyle = node.bgColor;
+    ctx.fill();
+    ctx.strokeStyle = node.color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "bold 10px 'Plus Jakarta Sans', sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(node.label.length > 12 ? node.label.substring(0, 11) + '..' : node.label, node.x, node.y);
+  });
+
+  // Gambar Simpul Sentral (Topik)
+  ctx.beginPath();
+  ctx.arc(centerNode.x, centerNode.y, centerNode.r + 5, 0, Math.PI * 2);
+  ctx.fillStyle = centerNode.bgColor;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(centerNode.x, centerNode.y, centerNode.r, 0, Math.PI * 2);
+  ctx.fillStyle = centerNode.color;
+  ctx.fill();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 9px 'Plus Jakarta Sans', sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(isHoax ? "KLAIM HOAKS" : "BERITA RESMI", centerNode.x, centerNode.y);
+}
+
+// 24. Profil Kerentanan Demografis & Vektor Psikologis
+function renderDemographicVulnerability(vuln) {
+  if (!vuln) return;
+  const targetEl = document.getElementById("vuln-target-val");
+  const scoreEl = document.getElementById("vuln-score-val");
+  const vectorEl = document.getElementById("vuln-vector-val");
+  const strategyEl = document.getElementById("vuln-strategy-val");
+
+  if (targetEl) targetEl.textContent = vuln.target_group || "-";
+  if (scoreEl) {
+    scoreEl.textContent = `${vuln.vulnerability_score}%`;
+    scoreEl.style.color = vuln.vulnerability_score > 60 ? "#dc2626" : "#059669";
+  }
+  if (vectorEl) vectorEl.textContent = vuln.psychological_vector || "-";
+  if (strategyEl) strategyEl.textContent = vuln.mitigation_strategy || "-";
+}
+
+// 25. Generator Narasi Klarifikasi Otomatis (Counter-Narrative)
+let currentCounterNarrative = null;
+let activeNarrativeStyle = "whatsapp";
+
+function initCounterNarrativeTabs() {
+  const tabs = document.querySelectorAll(".cn-tabs .cn-tab-btn");
+  tabs.forEach(btn => {
+    btn.addEventListener("click", () => {
+      tabs.forEach(t => t.classList.remove("active"));
+      btn.classList.add("active");
+      activeNarrativeStyle = btn.getAttribute("data-style") || "whatsapp";
+      updateNarrativeOutput();
+    });
+  });
+
+  const btnCopy = document.getElementById("btn-copy-cn");
+  if (btnCopy) {
+    btnCopy.addEventListener("click", copyCounterNarrativeText);
+  }
+}
+
+function renderCounterNarrative(cn) {
+  currentCounterNarrative = cn;
+  updateNarrativeOutput();
+}
+
+function updateNarrativeOutput() {
+  const textarea = document.getElementById("cn-text-output");
+  if (!textarea || !currentCounterNarrative) return;
+
+  if (activeNarrativeStyle === "formal") {
+    textarea.value = currentCounterNarrative.formal_pr || "";
+  } else if (activeNarrativeStyle === "social") {
+    textarea.value = currentCounterNarrative.social_media || "";
+  } else {
+    textarea.value = currentCounterNarrative.whatsapp_group || "";
+  }
+}
+
+function copyCounterNarrativeText() {
+  const textarea = document.getElementById("cn-text-output");
+  const toast = document.getElementById("cn-copy-toast");
+  if (!textarea || !textarea.value) return;
+
+  navigator.clipboard.writeText(textarea.value).then(() => {
+    if (toast) {
+      toast.style.display = "inline";
+      setTimeout(() => { toast.style.display = "none"; }, 2500);
+    }
+  });
+}
+
+// 26. Pintasan Cek Silang Multikanal (One-Click Fact-Check Deep Links)
+function updateCrossReferenceLinks(rawTitle) {
+  const cleanTitle = (rawTitle || "").trim();
+  const q = encodeURIComponent(cleanTitle);
+
+  const btnMafindo = document.getElementById("btn-ref-mafindo");
+  const btnGoogle = document.getElementById("btn-ref-google");
+  const btnKompas = document.getElementById("btn-ref-kompas");
+
+  if (btnMafindo) {
+    btnMafindo.href = cleanTitle ? `https://turnbackhoax.id/?s=${q}` : "https://turnbackhoax.id/";
+  }
+  if (btnGoogle) {
+    btnGoogle.href = cleanTitle ? `https://toolbox.google.com/factcheck/explorer/search/list?hl=id&query=${q}` : "https://toolbox.google.com/factcheck/explorer";
+  }
+  if (btnKompas) {
+    btnKompas.href = cleanTitle ? `https://www.kompas.com/cekfakta/search?q=${q}` : "https://www.kompas.com/cekfakta";
+  }
+}
+
+// 27. Filter & Pencarian Basis Data Hoaks (Searchable Archive)
+let activeArchiveCategory = "all";
+
+function initArchiveSearch() {
+  const searchInput = document.getElementById("archive-search-input");
+  const catPills = document.querySelectorAll("#category-pills-list .cat-pill");
+
+  if (searchInput) {
+    searchInput.addEventListener("input", filterAndRenderArchive);
+  }
+
+  catPills.forEach(pill => {
+    pill.addEventListener("click", () => {
+      catPills.forEach(p => p.classList.remove("active"));
+      pill.classList.add("active");
+      activeArchiveCategory = pill.getAttribute("data-cat") || "all";
+      filterAndRenderArchive();
+    });
+  });
+}
+
+function filterAndRenderArchive() {
+  const searchInput = document.getElementById("archive-search-input");
+  const query = (searchInput ? searchInput.value : "").toLowerCase().trim();
+  const container = document.getElementById("trending-news-grid");
+  if (!container) return;
+
+  const filtered = TRENDING_HOAX_FEED.filter(item => {
+    const matchCat = activeArchiveCategory === "all" || item.category === activeArchiveCategory;
+    const matchQuery = !query || 
+      item.title.toLowerCase().includes(query) || 
+      item.summary.toLowerCase().includes(query) ||
+      item.category.toLowerCase().includes(query);
+    return matchCat && matchQuery;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 24px; color: #64748b; font-size: 13px;">
+        🔍 Tidak ditemukan arsip hoaks untuk pencarian "<strong>${query}</strong>". Coba kata kunci lain atau pilih Semua Kategori.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.map((item) => {
+    const isHoax = item.verdict === "HOAKS";
+    const originalIdx = TRENDING_HOAX_FEED.indexOf(item);
+    return `
+      <div class="trending-card ${isHoax ? 'trend-hoax' : 'trend-fact'}">
+        <div class="trending-card-top">
+          <span class="trending-cat">${item.category}</span>
+          <span class="trending-badge ${isHoax ? 'badge-hoax' : 'badge-fact'}">${item.verdict}</span>
+        </div>
+        <h4 class="trending-card-title">${item.title}</h4>
+        <p class="trending-card-summary">${item.summary}</p>
+        <div class="trending-card-footer">
+          <span class="trending-source">🔍 Verifikasi: ${item.source}</span>
+          <button class="trending-test-btn" onclick="testTrendingItem(${originalIdx})">
+            <span>⚡</span> Uji di AI
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+// 28. Floating AI Forensic Copilot
+function initCopilot() {
+  const btnOpen = document.getElementById("btn-open-copilot");
+  const btnClose = document.getElementById("btn-close-copilot");
+  const drawer = document.getElementById("copilot-drawer");
+  const btnSend = document.getElementById("btn-copilot-send");
+  const input = document.getElementById("copilot-input");
+  const quickChips = document.querySelectorAll(".copilot-quick-chips .cp-chip");
+
+  if (!btnOpen || !drawer) return;
+
+  btnOpen.addEventListener("click", () => {
+    drawer.classList.toggle("open");
+  });
+
+  if (btnClose) {
+    btnClose.addEventListener("click", () => {
+      drawer.classList.remove("open");
+    });
+  }
+
+  quickChips.forEach(chip => {
+    chip.addEventListener("click", () => {
+      const q = chip.getAttribute("data-q");
+      if (q) sendCopilotMessage(q);
+    });
+  });
+
+  if (btnSend && input) {
+    btnSend.addEventListener("click", () => {
+      const text = input.value.trim();
+      if (text) {
+        sendCopilotMessage(text);
+        input.value = "";
+      }
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        const text = input.value.trim();
+        if (text) {
+          sendCopilotMessage(text);
+          input.value = "";
+        }
+      }
+    });
+  }
+}
+
+async function sendCopilotMessage(userText) {
+  const container = document.getElementById("copilot-messages");
+  if (!container) return;
+
+  // Render gelembung pengguna
+  const userDiv = document.createElement("div");
+  userDiv.className = "cp-msg user";
+  userDiv.innerHTML = `
+    <div class="cp-bubble">${userText}</div>
+    <span class="cp-time">Anda • ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+  `;
+  container.appendChild(userDiv);
+  container.scrollTop = container.scrollHeight;
+
+  // Render indikator bot berpikir
+  const botLoading = document.createElement("div");
+  botLoading.className = "cp-msg bot";
+  botLoading.innerHTML = `
+    <div class="cp-bubble" style="color:#64748b;"><em>Sedang menganalisis konteks forensik...</em></div>
+  `;
+  container.appendChild(botLoading);
+  container.scrollTop = container.scrollHeight;
+
+  // Susun payload konteks
+  const context = {
+    title: currentClassification ? currentClassification.title : "",
+    predicted_label: currentClassification ? currentClassification.predicted_label : "HOAKS",
+    hoax_percentage: currentClassification ? currentClassification.hoax_percentage : 75.0,
+    terms: currentClassification?.explanation?.top_terms ? currentClassification.explanation.top_terms.map(t => t.term) : [],
+    multi_dim: currentClassification?.multi_dimensional || {}
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/copilot/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: jsonPayload({ message: userText, context })
+    });
+    const data = await res.json();
+    botLoading.remove();
+
+    const botDiv = document.createElement("div");
+    botDiv.className = "cp-msg bot";
+    const replyText = data.success ? data.reply : "Maaf, terjadi kendala saat memproses inferensi asisten.";
+    botDiv.innerHTML = `
+      <div class="cp-bubble">${replyText.replace(/\n/g, "<br>")}</div>
+      <span class="cp-time">Copilot Forensik • ${data.timestamp || new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+    `;
+    container.appendChild(botDiv);
+    container.scrollTop = container.scrollHeight;
+  } catch (err) {
+    botLoading.remove();
+    const botDiv = document.createElement("div");
+    botDiv.className = "cp-msg bot";
+    botDiv.innerHTML = `
+      <div class="cp-bubble" style="color:#dc2626;">Gagal menghubungi server Copilot. Pastikan backend aktif.</div>
+    `;
+    container.appendChild(botDiv);
+    container.scrollTop = container.scrollHeight;
   }
 }
 

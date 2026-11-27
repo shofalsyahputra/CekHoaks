@@ -278,6 +278,89 @@
               <div id="xai-chips-list" class="xai-chips"></div>
             </div>
 
+            <!-- Visualisasi Jaringan Relasi Entitas (Semantic Entity Network) -->
+            <div class="entity-network-box">
+              <div class="entity-network-head">
+                <h4><span>🕸️</span> Visualisasi Jaringan Semantik Entitas (Node Graph):</h4>
+                <span class="badge-pill">MNB N-Gram Links</span>
+              </div>
+              <p style="font-size:11px; color:#64748b; margin-bottom:8px;">
+                Memetakan keterhubungan leksikal antara topik utama, entitas aktor, dan prediktor polaritas disinformasi:
+              </p>
+              <div class="canvas-wrapper">
+                <canvas id="entity-network-canvas" width="580" height="220"></canvas>
+              </div>
+            </div>
+
+            <!-- Profil Kerentanan Demografis & Vektor Psikologis -->
+            <div class="demographic-vulnerability-box" id="demographic-box">
+              <h4><span>👥</span> Profil Kerentanan Demografis & Vektor Psikologis:</h4>
+              <div class="vuln-grid">
+                <div class="vuln-card">
+                  <span class="vuln-label">Target Audiens Rentan</span>
+                  <strong id="vuln-target-val">Lansia & Grup Komunitas WhatsApp</strong>
+                </div>
+                <div class="vuln-card">
+                  <span class="vuln-label">Indeks Kerentanan</span>
+                  <strong id="vuln-score-val" style="color:#dc2626;">Tinggi (88%)</strong>
+                </div>
+              </div>
+              <div class="vuln-detail">
+                <div style="margin-bottom:6px;">
+                  <span style="font-weight:700; color:#475569; font-size:11px;">Vektor Manipulasi:</span>
+                  <span id="vuln-vector-val" style="font-size:11px; color:#1e293b;">Kekhawatiran Kesehatan & Manipulasi Empati</span>
+                </div>
+                <div>
+                  <span style="font-weight:700; color:#475569; font-size:11px;">Strategi Edukasi:</span>
+                  <span id="vuln-strategy-val" style="font-size:11px; color:#059669;">Gunakan pendekatan persuasif santun, hindari konfrontasi langsung.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Generator Narasi Klarifikasi Otomatis (Counter-Narrative) -->
+            <div class="counter-narrative-section" id="counter-narrative-box">
+              <div class="cn-head">
+                <h4><span>✍️</span> Generator Narasi Klarifikasi Resmi (Siap Bagikan):</h4>
+                <span class="badge-pill green">AI Generated Counter-Fact</span>
+              </div>
+              <div class="cn-tabs">
+                <button class="cn-tab-btn active" data-style="whatsapp">💬 WhatsApp Santun</button>
+                <button class="cn-tab-btn" data-style="formal">🏛️ Formal Humas</button>
+                <button class="cn-tab-btn" data-style="social">📱 Medsos (X / IG)</button>
+              </div>
+              <div class="cn-content-box">
+                <textarea id="cn-text-output" readonly placeholder="Narasi klarifikasi akan disusun secara otomatis oleh AI di sini..."></textarea>
+                <div class="cn-actions">
+                  <button id="btn-copy-cn" class="btn-primary" style="padding:7px 14px; font-size:11px; margin:0;">
+                    <span>📋</span> Salin Narasi Klarifikasi
+                  </button>
+                  <span id="cn-copy-toast" class="copy-toast" style="display:none;">✓ Berhasil disalin!</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pintasan Cek Silang Multikanal (One-Click Fact-Check Deep Link) -->
+            <div class="cross-reference-section">
+              <h4><span>🌐</span> Pintasan Cek Silang Portal Terakreditasi (1-Klik):</h4>
+              <p style="font-size:11px; color:#64748b; margin-bottom:8px;">
+                Cari klarifikasi dan rujukan arsip resmi langsung di basis data pemeriksa fakta terverifikasi:
+              </p>
+              <div class="cross-ref-buttons">
+                <a id="btn-ref-mafindo" target="_blank" rel="noopener noreferrer" class="cross-ref-btn ref-mafindo">
+                  <span>🔍</span> MAFINDO (TurnBackHoax)
+                </a>
+                <a id="btn-ref-google" target="_blank" rel="noopener noreferrer" class="cross-ref-btn ref-google">
+                  <span>🌐</span> Google Fact Check
+                </a>
+                <a id="btn-ref-kominfo" href="https://aduankonten.id/" target="_blank" rel="noopener noreferrer" class="cross-ref-btn ref-kominfo">
+                  <span>🏛️</span> Aduan Konten Kominfo
+                </a>
+                <a id="btn-ref-kompas" target="_blank" rel="noopener noreferrer" class="cross-ref-btn ref-kompas">
+                  <span>📰</span> Cek Fakta Kompas
+                </a>
+              </div>
+            </div>
+
             <!-- Shareable Fact Card Preview -->
             <div class="fact-card-preview" id="fact-card-box">
               <div class="fact-card-header">
@@ -324,12 +407,27 @@
           <div class="radar-title-group">
             <span class="radar-live-icon">📡</span>
             <div>
-              <h3>Radar Hoaks & Fakta Terkini di Indonesia</h3>
+              <h3>Radar & Basis Pengetahuan Hoaks Terkini di Indonesia</h3>
               <p>Kasus-kasus disinformasi viral yang telah diverifikasi oleh MAFINDO & Kominfo (Klik untuk Analisis Instan)</p>
             </div>
           </div>
           <span class="radar-live-pill"><span class="pulse-dot"></span> Live Feed Radar</span>
         </div>
+
+        <!-- Pencarian & Filter Kategori Basis Data Hoaks -->
+        <div class="archive-controls">
+          <div class="archive-search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="archive-search-input" placeholder="Cari arsip hoaks (misal: vaksin, dana, pemilu, bantuan, gempa)...">
+          </div>
+          <div class="category-pills" id="category-pills-list">
+            <button class="cat-pill active" data-cat="all">Semua Kategori</button>
+            <button class="cat-pill" data-cat="Teknologi & Kesehatan">🩺 Medis & Kesehatan</button>
+            <button class="cat-pill" data-cat="Pemerintahan & Karir">🏛️ Politik & Pemerintah</button>
+            <button class="cat-pill" data-cat="Sosial & Kebijakan">💰 Bansos & Finansial</button>
+          </div>
+        </div>
+
         <div class="trending-grid" id="trending-news-grid">
           <!-- Trending items rendered dynamically via JS -->
         </div>
@@ -683,6 +781,50 @@
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Widget 6: Floating AI Forensic Copilot Button & Drawer -->
+  <button id="btn-open-copilot" class="floating-copilot-btn" title="Tanya Asisten Forensik AI">
+    <span class="copilot-btn-icon">🤖</span>
+    <span class="copilot-btn-text">Tanya Copilot AI</span>
+    <span class="copilot-online-dot"></span>
+  </button>
+
+  <div id="copilot-drawer" class="copilot-drawer">
+    <div class="copilot-header">
+      <div class="copilot-title">
+        <span style="font-size:20px;">🤖</span>
+        <div>
+          <h4>Copilot Forensik CekHoaks</h4>
+          <span>Asisten AI Verifikasi & Klarifikasi Berita</span>
+        </div>
+      </div>
+      <button id="btn-close-copilot" class="copilot-close-btn">&times;</button>
+    </div>
+
+    <!-- Quick Prompts Chips -->
+    <div class="copilot-quick-chips">
+      <button class="cp-chip" data-q="Mengapa artikel ini terindikasi hoaks?">🤔 Mengapa hoaks?</button>
+      <button class="cp-chip" data-q="Bagaimana cara membalas santun di grup WA keluarga?">💬 Teks WA keluarga</button>
+      <button class="cp-chip" data-q="Di mana mencari sumber klarifikasi resminya?">🔍 Sumber resmi</button>
+      <button class="cp-chip" data-q="Apa kata kunci yang paling mencurigakan?">🚨 Kata mencurigakan</button>
+    </div>
+
+    <div class="copilot-messages" id="copilot-messages">
+      <div class="cp-msg bot">
+        <div class="cp-bubble">
+          Halo! Saya <strong>Copilot Forensik CekHoaks AI</strong>. Tanyakan apa saja mengenai alasan klasifikasi berita, cara menyusun bantahan, atau tips mengedukasi keluarga di grup WhatsApp. Silakan klik tombol di atas atau ketik pertanyaan Anda!
+        </div>
+        <span class="cp-time">Sistem • Siap Membantu</span>
+      </div>
+    </div>
+
+    <div class="copilot-input-bar">
+      <input type="text" id="copilot-input" placeholder="Tanya AI seputar artikel ini...">
+      <button id="btn-copilot-send" class="btn-primary">
+        <span>➤</span>
+      </button>
     </div>
   </div>
 

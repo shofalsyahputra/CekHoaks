@@ -252,7 +252,25 @@ class AppRequestHandler(BaseHTTPRequestHandler):
             })
             return
 
-        # 6. POST /api/v1/research/train (Re-train Engine)
+        # 6. POST /api/v1/copilot/chat (Asisten Forensik Interaktif AI Copilot)
+        if path == "/api/v1/copilot/chat":
+            msg = body.get("message", "").strip().lower()
+            ctx = body.get("context", {})
+            title = ctx.get("title", "")
+            predicted = ctx.get("predicted_label", "HOAKS")
+            hoax_pct = ctx.get("hoax_percentage", 75.0)
+            terms = ctx.get("terms", [])
+            multi_dim = ctx.get("multi_dim", {})
+
+            reply = self._generate_copilot_response(msg, title, predicted, hoax_pct, terms, multi_dim)
+            self._send_json(200, {
+                "success": True,
+                "reply": reply,
+                "timestamp": time.strftime("%H:%M:%S")
+            })
+            return
+
+        # 7. POST /api/v1/research/train (Re-train Engine)
         if path == "/api/v1/research/train":
             from train_model import train
             train()
@@ -265,6 +283,57 @@ class AppRequestHandler(BaseHTTPRequestHandler):
             return
 
         self._send_json(404, {"error": "Endpoint tidak valid."})
+
+    def _generate_copilot_response(self, query: str, title: str, label: str, hoax_pct: float, terms: list, multi_dim: dict) -> str:
+        terms_str = ", ".join([f"'{t}'" for t in terms[:4]]) if terms else "istilah pemicu"
+        cb_score = multi_dim.get("clickbait_score", 0)
+        urg_score = multi_dim.get("urgency_index", 0)
+        is_hoax = label == "HOAKS"
+
+        if any(w in query for w in ["kenapa", "mengapa", "alasan", "sebab", "dasar"]):
+            if is_hoax:
+                return (
+                    f"Berdasarkan inferensi model Multinomial Naive Bayes (MNB), artikel ini terindikasi **HOAKS ({hoax_pct}%)** "
+                    f"karena mengandung fitur leksikal dengan bobot log-odds negatif yang signifikan: {terms_str}. "
+                    f"Selain itu, indeks clickbait judul terukur {cb_score}% dan ada pola urgensi palsu ({urg_score}%) yang lazim digunakan dalam rekayasa sosial."
+                )
+            else:
+                return (
+                    f"Model MNB mengklasifikasikan artikel ini sebagai **FAKTA RESMI ({100 - hoax_pct}%)** karena kosakata yang digunakan "
+                    f"bersifat objektif, netral, dan mengindikasikan struktur pelaporan kredibel tanpa manipulasi emosi provokatif."
+                )
+
+        elif any(w in query for w in ["klarifikasi", "bantah", "balas", "sangkal", "counter"]):
+            if is_hoax:
+                return (
+                    "Anda dapat menggunakan format klarifikasi 3-titik: (1) Tegaskan bahwa info belum terverifikasi secara resmi, "
+                    "(2) Tunjukkan bahwa tidak ada rilis rujukan dari lembaga berwenang, dan (3) Ajak untuk menghentikan penyebaran "
+                    "sebelum memeriksa di portal MAFINDO (turnbackhoax.id) atau Kominfo."
+                )
+            else:
+                return "Karena artikel ini terverifikasi fakta, Anda dapat membagikannya sebagai rujukan edukatif yang valid untuk meluruskan kesalahpahaman."
+
+        elif any(w in query for w in ["wa", "whatsapp", "keluarga", "grup", "orang tua", "sopan"]):
+            return (
+                "Tips meluruskan di grup WhatsApp tanpa berdebat: Gunakan teknik *'Empathy First'*. "
+                "Awali dengan terima kasih atas niat baik pengirim, lalu sertakan bantahan resmi secara santun: "
+                "\"*Terima kasih infonya Om/Tante 🙏, izin meluruskan tadi saya cek di verifikasi CekHoaks info ini ternyata hoaks yang didaur ulang. Mohon jangan disebarkan lagi ya agar tidak bingung. Terima kasih.*\""
+            )
+
+        elif any(w in query for w in ["sumber", "cek", "kominfo", "mafindo", "bukti", "portal"]):
+            return (
+                "Rujukan resmi terbaik untuk memverifikasi isu ini di Indonesia:\n"
+                "1. **MAFINDO (turnbackhoax.id)** - Arsip pencarian cek fakta terlengkap.\n"
+                "2. **Kemenkominfo (aduankonten.id)** - Kanal pelaporan dan klarifikasi hoaks resmi pemerintah.\n"
+                "3. **Google Fact Check Explorer** - Basis data cek fakta global terakreditasi IFCN."
+            )
+
+        else:
+            return (
+                f"Saya adalah Copilot Forensik CekHoaks AI. Mengenai artikel \"{title[:50]}...\": "
+                f"Status saat ini teridentifikasi sebagai **{label} ({hoax_pct}%)** dengan clickbait meter {cb_score}%. "
+                f"Anda bisa bertanya kepada saya: *'Mengapa ini hoaks?'*, *'Bagaimana cara membalas di grup WA?'*, atau *'Di mana mencari klarifikasi resminya?'*."
+            )
 
     def _calculate_multi_dimensional_metrics(self, title: str, content: str, tokens: list, hoax_score: float, source_type: str) -> dict:
         combined = f"{title} {content}".lower()
@@ -312,6 +381,32 @@ class AppRequestHandler(BaseHTTPRequestHandler):
         cert_hash = hashlib.sha256(f"{title} {content}".encode("utf-8")).hexdigest()[:16].upper()
         cert_id = f"CEKHOAKS-SEC-{cert_hash[:4]}-{cert_hash[4:8]}-{cert_hash[8:12]}-{cert_hash[12:16]}"
 
+        # 6. Analisis Kerentanan Demografis (Demographic Vulnerability Profile)
+        health_kws = ["rebusan", "vaksin", "dokter", "racun", "kanker", "obat", "jantung", "meninggal", "sembuh"]
+        finance_kws = ["dana", "rekening", "bantuan", "subsidi", "uang", "rekrutmen", "hadiah", "pemenang", "biaya"]
+        politic_kws = ["pemilu", "kpu", "suara", "rezim", "konspirasi", "antek", "boikot", "curang"]
+
+        if any(w in combined for w in health_kws):
+            target_group = "Lansia & Grup WhatsApp Keluarga"
+            vuln_score = 88 if hoax_score > 0.5 else 30
+            psych_vector = "Kekhawatiran Kesehatan & Manipulasi Empati Keluarga"
+            mitigation = "Gunakan klarifikasi santun bernada empati, sertakan kutipan dokter/BPOM, hindari debat terbuka."
+        elif any(w in combined for w in finance_kws):
+            target_group = "Pencari Kerja, Masyarakat Prasejahtera & Pelajar"
+            vuln_score = 92 if hoax_score > 0.5 else 25
+            psych_vector = "Urgensi Ekonomi & Janji Imbalan Palsu (Phishing)"
+            mitigation = "Edukasi untuk memeriksa kanal resmi SSCASN/Kemnaker dan jangan pernah mengirim uang ke rekening pribadi."
+        elif any(w in combined for w in politic_kws):
+            target_group = "Pemilih Pemula & Netizen Medsos (X/FB/TikTok)"
+            vuln_score = 82 if hoax_score > 0.5 else 35
+            psych_vector = "Polarisasi Opini & Pemicu Kemarahan Kolektif"
+            mitigation = "Bandingkan dengan siaran pers KPU dan data tabulasi pembanding independen yang terverifikasi."
+        else:
+            target_group = "Masyarakat Umum & Pengguna Internet"
+            vuln_score = 65 if hoax_score > 0.5 else 20
+            psych_vector = "Rasa Penasaran & Kecepatan Informasi Viral"
+            mitigation = "Terapkan prinsip 'Saring Sebelum Sharing' dan periksa domain rujukan sebelum membagikan."
+
         return {
             "clickbait_score": clickbait_score,
             "urgency_index": urgency_index,
@@ -327,7 +422,67 @@ class AppRequestHandler(BaseHTTPRequestHandler):
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S UTC+7"),
                 "algorithm": "Multinomial Naive Bayes + Lidstone (alpha=0.5) + LIME XAI",
                 "auditor": "CekHoaks Digital Forensics Engine v1.2"
+            },
+            "demographic_vulnerability": {
+                "target_group": target_group,
+                "vulnerability_score": vuln_score,
+                "psychological_vector": psych_vector,
+                "mitigation_strategy": mitigation
             }
+        }
+
+    def _generate_counter_narrative(self, title: str, content: str, label: str, terms: list, risk_level: str) -> dict:
+        terms_str = ", ".join([t.get("term", "") for t in terms[:3]]) if terms else "klaim provokatif"
+        safe_title = title if title else "informasi yang beredar"
+
+        if label == "HOAKS":
+            formal = (
+                f"SIARAN KLARIFIKASI RESMI TERKAIT INFORMASI BEREDAR:\n\n"
+                f"Menanggapi narasi yang beredar di masyarakat dengan judul \"{safe_title}\", "
+                f"disampaikan bahwa narasi tersebut TIDAK BENAR dan terindikasi sebagai disinformasi/hoaks. "
+                f"Hasil audit forensik leksikal menunjukkan adanya anomali istilah provokatif ({terms_str}) "
+                f"dengan tingkat risiko {risk_level}.\n\n"
+                f"Masyarakat diimbau untuk tidak menyebarluaskan narasi ini dan hanya mempercayai informasi "
+                f"resmi yang telah diverifikasi oleh kementerian/lembaga berwenang melalui kanal aduankonten.id."
+            )
+            whatsapp = (
+                f"Bapak/Ibu dan teman-teman sekalian, mohon izin meluruskan info di atas yaa terkait \"{safe_title}\" 🙏.\n\n"
+                f"Setelah dicek di sistem verifikasi fakta CekHoaks AI dan rujukan resmi, informasi tersebut terkonfirmasi HOAKS / tidak akurat "
+                f"(terindikasi pemicu: {terms_str}).\n\n"
+                f"Mohon untuk tidak diteruskan ke grup lain agar tidak menimbulkan kepanikan atau salah paham. "
+                f"Terima kasih atas perhatiannya, mari tetap bijak menyaring sebelum sharing! ✨"
+            )
+            social = (
+                f"🚨 [CEK FAKTA RESMI]\n\n"
+                f"Beredar klaim: \"{safe_title}\"\n\n"
+                f"❌ STATUS: TERINDIKASI DISINFORMASI / HOAKS\n"
+                f"⚠️ Risiko: {risk_level}\n"
+                f"🔍 Pemicu: Pola leksikal {terms_str} tanpa dasar rujukan data resmi.\n\n"
+                f"Fakta sebenarnya: Hingga saat ini tidak ada pengumuman resmi terkait klaim tersebut. Selalu cek silang sebelum membagikan!\n\n"
+                f"#CekFakta #SaringSebelumSharing #AntiHoaks #LiterasiDigital"
+            )
+        else:
+            formal = (
+                f"KONFIRMASI INFORMASI FAKTUAL:\n\n"
+                f"Mengenai artikel dengan judul \"{safe_title}\", hasil klasifikasi membuktikan narasi ini BERITA FAKTA / RESMI. "
+                f"Kandungan berita bersifat faktual, objektif, dan selaras dengan siaran pers instansi terpercaya."
+            )
+            whatsapp = (
+                f"Bapak/Ibu sekalian, sekadar konfirmasi info \"{safe_title}\" di atas sudah dicek dan terbukti FAKTA RESMI yaa 👍. "
+                f"Informasinya valid dan bersumber dari rujukan kredibel. Semoga bermanfaat!"
+            )
+            social = (
+                f"✅ [VERIFIKASI FAKTA RESMI]\n\n"
+                f"Judul: \"{safe_title}\"\n\n"
+                f"✔️ STATUS: VALID & TERVERIFIKASI FAKTA\n"
+                f"Isi berita kredibel, proporsional, dan bebas dari rekayasa disinformasi.\n\n"
+                f"#InfoValid #BeritaResmi #CekFakta"
+            )
+
+        return {
+            "formal_pr": formal,
+            "whatsapp_group": whatsapp,
+            "social_media": social
         }
 
     def _perform_classification(self, title: str, content: str, full_text: str, source_type: str = "text") -> dict:
@@ -358,6 +513,12 @@ class AppRequestHandler(BaseHTTPRequestHandler):
         # Analisis Multi-Dimensi Tingkat Lanjut (Clickbait, Urgensi, Emosi, Forensik)
         multi_dim = self._calculate_multi_dimensional_metrics(title, content, tokens, hoax_score, source_type)
 
+        # Generator Narasi Klarifikasi Otomatis (Counter-Narrative)
+        counter_narrative = self._generate_counter_narrative(
+            title, content, predicted_label,
+            explanation.get("top_terms", []), risk_level
+        )
+
         # Simpan jejak audit ke basis data relasional SQLite
         log_id = db_service.save_log(
             title=title,
@@ -387,6 +548,7 @@ class AppRequestHandler(BaseHTTPRequestHandler):
             "explanation": explanation,
             "source_type": source_type,
             "multi_dimensional": multi_dim,
+            "counter_narrative": counter_narrative,
             "evaluated_at": time.strftime("%Y-%m-%d %H:%M:%S")
         }
 

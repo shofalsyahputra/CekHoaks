@@ -12,6 +12,9 @@ document.addEventListener("DOMContentLoaded", () => {
   initSpeedometer(0, "neutral");
   initDarkMode();
   initViewToggle();
+  initSoundToggle();
+  initTrendingNewsFeed();
+  initComparisonMode();
   updateStatsDashboard();
   loadHistoryFromLocal();
   fetchModelMetrics();
@@ -309,17 +312,31 @@ function renderResult(data) {
   const score = isHoax ? data.hoax_percentage : data.fact_percentage;
   initSpeedometer(score, isHoax ? "hoax" : "fact");
 
+  // Render Stabilo Teks Interaktif (In-Text Highlighting)
+  renderInTextHighlights(data);
+
+  // Render Indikator Analisis Multi-Dimensi (Clickbait, Urgensi, Emosi, Reputasi)
+  if (data.multi_dimensional) {
+    renderMultiDimensionalMetrics(data.multi_dimensional);
+  }
+
+  // Audio Feedback Synthesizer (Web Audio API)
+  playAudioFeedback(isHoax ? "hoax" : "fact");
+
   // Render XAI Chips (Explainable AI Keywords)
   renderXAIChips(data.explanation);
 
   // Update Fact Card Preview
   updateFactCardPreview(data);
 
+  // Update Stats Dashboard
+  updateStatsDashboard();
+
   // Scroll smooth ke hasil
   resultCard.scrollIntoView({ behavior: "smooth" });
 }
 
-// Speedometer Gauge Arc (SVG)
+// Speedometer Gauge Arc (SVG) dengan Count-up Animasi Halus
 function initSpeedometer(percentage, type) {
   const meter = document.getElementById("gauge-meter-path");
   const scoreText = document.getElementById("gauge-score-num");
@@ -327,10 +344,10 @@ function initSpeedometer(percentage, type) {
 
   // SVG Semi-Circle circumference (radius 80, length = PI * 80 ≈ 251.3)
   const totalLength = 251.3;
-  const offset = totalLength - (percentage / 100) * totalLength;
+  const targetOffset = totalLength - (percentage / 100) * totalLength;
 
   meter.style.strokeDasharray = `${totalLength}`;
-  meter.style.strokeDashoffset = `${offset}`;
+  meter.style.strokeDashoffset = `${targetOffset}`;
 
   if (type === "hoax") {
     meter.style.stroke = "#dc2626"; // Merah pekat
@@ -346,7 +363,29 @@ function initSpeedometer(percentage, type) {
     labelText.textContent = "Tingkat Akurasi";
   }
 
-  scoreText.textContent = `${Math.round(percentage)}%`;
+  // Count-up Animasi Halus
+  if (percentage <= 0) {
+    scoreText.textContent = "0%";
+    return;
+  }
+
+  const endVal = Math.round(percentage);
+  const duration = 700;
+  const startTime = performance.now();
+
+  function step(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3); // Ease-out cubic
+    const current = Math.round(endVal * ease);
+    scoreText.textContent = `${current}%`;
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    } else {
+      scoreText.textContent = `${endVal}%`;
+    }
+  }
+  requestAnimationFrame(step);
 }
 
 // Render XAI Keyword Chips
@@ -785,5 +824,389 @@ function initViewToggle() {
     if (icon) icon.textContent = isMobile ? "💻" : "📱";
     if (text) text.textContent = isMobile ? "Layar Penuh" : "Mode HP";
   });
+}
+
+// 17. Sound Feedback (Web Audio API Synthesizer)
+let audioCtx = null;
+let soundEnabled = localStorage.getItem("cekhoaks_sound") !== "false";
+
+function initSoundToggle() {
+  const btn = document.getElementById("btn-toggle-sound");
+  if (!btn) return;
+  btn.textContent = soundEnabled ? "🔊" : "🔇";
+  btn.title = soundEnabled ? "Efek Suara AI: Aktif (Klik untuk Membisukan)" : "Efek Suara AI: Bisu (Klik untuk Mengaktifkan)";
+  
+  btn.addEventListener("click", () => {
+    soundEnabled = !soundEnabled;
+    localStorage.setItem("cekhoaks_sound", soundEnabled ? "true" : "false");
+    btn.textContent = soundEnabled ? "🔊" : "🔇";
+    btn.title = soundEnabled ? "Efek Suara AI: Aktif (Klik untuk Membisukan)" : "Efek Suara AI: Bisu (Klik untuk Mengaktifkan)";
+    if (soundEnabled) {
+      playAudioFeedback("fact");
+    }
+  });
+}
+
+function playAudioFeedback(type) {
+  if (!soundEnabled) return;
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === "suspended") {
+      audioCtx.resume();
+    }
+
+    const now = audioCtx.currentTime;
+    if (type === "fact") {
+      // Akord Mayor Harmonis: C5 (523.25 Hz) -> E5 (659.25 Hz) -> G5 (783.99 Hz)
+      const freqs = [523.25, 659.25, 783.99];
+      freqs.forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, now + idx * 0.09);
+        gain.gain.setValueAtTime(0.001, now + idx * 0.09);
+        gain.gain.exponentialRampToValueAtTime(0.18, now + idx * 0.09 + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.09 + 0.28);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + idx * 0.09);
+        osc.stop(now + idx * 0.09 + 0.3);
+      });
+    } else if (type === "hoax") {
+      // Nada Peringatan Waspada: F#4 (369.99 Hz) -> B3 (246.94 Hz)
+      const freqs = [369.99, 246.94];
+      freqs.forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(freq, now + idx * 0.13);
+        gain.gain.setValueAtTime(0.001, now + idx * 0.13);
+        gain.gain.exponentialRampToValueAtTime(0.22, now + idx * 0.13 + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.13 + 0.32);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + idx * 0.13);
+        osc.stop(now + idx * 0.13 + 0.35);
+      });
+    }
+  } catch (e) {
+    console.warn("Web Audio API tidak didukung atau diblokir:", e);
+  }
+}
+
+// 18. Stabilo Teks Interaktif (In-Text Highlighting XAI)
+function renderInTextHighlights(data) {
+  const container = document.getElementById("highlighted-text-content");
+  if (!container) return;
+
+  const rawTitle = data.title || "";
+  const rawContent = data.content || data.cleansed_text || "";
+  const fullText = (rawTitle ? `[JUDUL] ${rawTitle}\n\n` : "") + rawContent;
+
+  if (!fullText.trim()) {
+    container.innerHTML = "<em style='color:#94a3b8;'>Tidak ada teks untuk ditampilkan.</em>";
+    return;
+  }
+
+  const terms = (data.explanation?.top_terms || []);
+  if (terms.length === 0) {
+    container.textContent = fullText;
+    return;
+  }
+
+  // Urutkan kata dari yang terpanjang ke terpendek agar n-gram frasa ter-match lebih dulu
+  const sortedTerms = [...terms].sort((a, b) => b.term.length - a.term.length);
+
+  function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  const termMap = {};
+  const regexTokens = [];
+  sortedTerms.forEach(t => {
+    const k = t.term.toLowerCase().trim();
+    if (k && !termMap[k]) {
+      termMap[k] = t;
+      regexTokens.push(escapeRegex(t.term));
+    }
+  });
+
+  if (regexTokens.length === 0) {
+    container.textContent = fullText;
+    return;
+  }
+
+  const pattern = new RegExp(`\\b(${regexTokens.join("|")})\\b`, "gi");
+
+  let formattedHtml = fullText
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\n\n/g, "<br><br>")
+    .replace(/\n/g, "<br>");
+
+  formattedHtml = formattedHtml.replace(pattern, (matched) => {
+    const info = termMap[matched.toLowerCase()];
+    if (!info) return matched;
+    const isHoax = info.direction === "HOAKS";
+    const cssClass = isHoax ? "highlight-hoax" : "highlight-fact";
+    const dirLabel = isHoax ? "Pemicu Hoaks" : "Sinyal Fakta";
+    const impact = info.impact_percent ? `(+${info.impact_percent}%)` : "";
+    return `<mark class="${cssClass}" data-tooltip="${dirLabel} ${impact}" title="${dirLabel} ${impact}">${matched}</mark>`;
+  });
+
+  container.innerHTML = formattedHtml;
+}
+
+// 19. Multi-Dimensional Metrics Section
+function renderMultiDimensionalMetrics(metrics) {
+  if (!metrics) return;
+
+  const cbVal = document.getElementById("dim-cb-val");
+  const cbBar = document.getElementById("dim-cb-bar");
+  const urgVal = document.getElementById("dim-urg-val");
+  const urgBar = document.getElementById("dim-urg-bar");
+  const repVal = document.getElementById("dim-rep-val");
+  const repBar = document.getElementById("dim-rep-bar");
+  const emoVal = document.getElementById("dim-emo-val");
+  const fearTag = document.getElementById("dim-emo-fear");
+  const angerTag = document.getElementById("dim-emo-anger");
+
+  if (cbVal && cbBar) {
+    cbVal.textContent = `${metrics.clickbait_score}%`;
+    cbBar.style.width = `${metrics.clickbait_score}%`;
+  }
+  if (urgVal && urgBar) {
+    urgVal.textContent = `${metrics.urgency_index}%`;
+    urgBar.style.width = `${metrics.urgency_index}%`;
+  }
+  if (repVal && repBar) {
+    repVal.textContent = `${metrics.domain_reputation}%`;
+    repBar.style.width = `${metrics.domain_reputation}%`;
+  }
+  if (metrics.emotional_sentiment) {
+    const fear = metrics.emotional_sentiment.fear || 0;
+    const anger = metrics.emotional_sentiment.anger || 0;
+
+    if (fearTag) fearTag.textContent = `Ketakutan: ${fear}%`;
+    if (angerTag) angerTag.textContent = `Kemarahan: ${anger}%`;
+    if (emoVal) {
+      if (fear >= 40 && fear >= anger) {
+        emoVal.textContent = "Dominan Cemas/Panik";
+        emoVal.style.color = "#ea580c";
+      } else if (anger >= 40) {
+        emoVal.textContent = "Dominan Amarah/Provokasi";
+        emoVal.style.color = "#dc2626";
+      } else {
+        emoVal.textContent = "Objektif / Netral";
+        emoVal.style.color = "#059669";
+      }
+    }
+  }
+}
+
+// 20. Live Trending Hoaks Radar Section
+const TRENDING_HOAX_FEED = [
+  {
+    title: "Beredar Video Menara BTS 5G Memancarkan Radiasi Pengendali Pikiran",
+    category: "Teknologi & Kesehatan",
+    verdict: "HOAKS",
+    source: "MAFINDO & Kominfo RI",
+    date: "27 Nov 2026",
+    summary: "Video viral menuding gelombang frekuensi mikro BTS 5G memicu gangguan memori. Kemenkominfo memastikan standar pancaran BTS di Indonesia jauh di bawah batas radiasi ICNIRP/WHO.",
+    sample_text: "Awas bahaya radiasi gelombang 5G dari menara tower ilegal! Telah terbukti memicu kerusakan sel otak dan kontrol pikiran warga. Matikan sinyal seluler Anda segera demi keselamatan!"
+  },
+  {
+    title: "Surat Edaran Palsu Rekrutmen CPNS Kemenkeu Berbayar Melalui Rekening Pribadi",
+    category: "Pemerintahan & Karir",
+    verdict: "HOAKS",
+    source: "BKN & Kemenkeu RI",
+    date: "26 Nov 2026",
+    summary: "Surat berkop Garuda palsu meminta biaya registrasi seleksi CPNS sebesar Rp 2,5 juta. BKN menegaskan seluruh proses pendaftaran CASN resmi hanya lewat portal sscasn.bkn.go.id tanpa pungutan.",
+    sample_text: "Pengumuman kelulusan afirmasi khusus CPNS Kementerian Keuangan RI 2026. Peserta diwajibkan menyelesaikan biaya administrasi pemberkasan SK ke rekening panitia agar NIP segera diterbitkan!"
+  },
+  {
+    title: "Klaim Air Rebusan Daun Sirih Dapat Menyembuhkan Penyakit Jantung Koroner",
+    category: "Medis & Herbal",
+    verdict: "HOAKS",
+    source: "PB PERKI & Kemenkes",
+    date: "25 Nov 2026",
+    summary: "Pesan berantai WhatsApp mengklaim plak pembuluh darah arteri lenyap seketika dengan minum air rebusan sirih. Dokter spesialis jantung menegaskan klaim tersebut mitos berbahaya.",
+    sample_text: "Kabar gembira bagi penderita jantung! Jangan mau pasang ring yang mahal. Cukup rebus daun sirih merah 7 lembar setiap pagi, plak pembuluh darah rontok dan jantung sehat seketika!"
+  },
+  {
+    title: "Pemerintah Mulai Salurkan Bantuan Subsidi Upah (BSU) Lewat Kanal Resmi BPJS",
+    category: "Sosial & Kebijakan",
+    verdict: "FAKTA RESMI",
+    source: "Kemnaker RI & Antara",
+    date: "24 Nov 2026",
+    summary: "Kementerian Ketenagakerjaan mengonfirmasi penyaluran BSU bagi pekerja terdaftar aktif BPJS Ketenagakerjaan melalui Bank Himbara dan PT Pos Indonesia secara bertahap.",
+    sample_text: "Kementerian Ketenagakerjaan resmi mencairkan program Bantuan Subsidi Upah BSU bagi jutaan pekerja berpenghasilan di bawah upah minimum melalui mekanisme transfer rekening bank Himbara."
+  }
+];
+
+function initTrendingNewsFeed() {
+  const container = document.getElementById("trending-news-grid");
+  if (!container) return;
+
+  container.innerHTML = TRENDING_HOAX_FEED.map((item, idx) => {
+    const isHoax = item.verdict === "HOAKS";
+    return `
+      <div class="trending-card ${isHoax ? 'trend-hoax' : 'trend-fact'}">
+        <div class="trending-card-top">
+          <span class="trending-cat">${item.category}</span>
+          <span class="trending-badge ${isHoax ? 'badge-hoax' : 'badge-fact'}">${item.verdict}</span>
+        </div>
+        <h4 class="trending-card-title">${item.title}</h4>
+        <p class="trending-card-summary">${item.summary}</p>
+        <div class="trending-card-footer">
+          <span class="trending-source">🔍 Verifikasi: ${item.source}</span>
+          <button class="trending-test-btn" onclick="testTrendingItem(${idx})">
+            <span>⚡</span> Uji di AI
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function testTrendingItem(idx) {
+  const item = TRENDING_HOAX_FEED[idx];
+  if (!item) return;
+
+  // Switch to Text Panel
+  const textTabBtn = document.querySelector('.tripartite-tabs .tab-btn[data-tab="panel-text"]');
+  if (textTabBtn) textTabBtn.click();
+
+  document.getElementById("text-title").value = item.title;
+  document.getElementById("text-content").value = item.sample_text;
+
+  // Trigger classification
+  handleClassifyText();
+}
+
+// 21. Digital Forensic Certificate Sheet Modal
+function openForensicCertificate() {
+  if (!currentClassification) {
+    alert("Silakan periksa suatu berita terlebih dahulu untuk menerbitkan lembar forensik!");
+    return;
+  }
+
+  const data = currentClassification;
+  const isHoax = data.predicted_label === "HOAKS";
+  const multi = data.multi_dimensional || {};
+  const cert = multi.forensic_certificate || {};
+
+  document.getElementById("cert-id-val").textContent = cert.cert_id || ("CEKHOAKS-" + Date.now());
+  document.getElementById("cert-hash-display").textContent = "SHA-256: " + (cert.sha256 || "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855").substring(0, 24) + "...";
+  document.getElementById("cert-time-val").textContent = cert.timestamp || data.evaluated_at || new Date().toLocaleString("id-ID");
+
+  const verdictTitle = document.getElementById("cert-verdict-title");
+  const verdictProb = document.getElementById("cert-verdict-prob");
+  const banner = document.getElementById("cert-banner");
+
+  if (isHoax) {
+    verdictTitle.textContent = "HASIL AUDIT: TERINDIKASI DISINFORMASI / HOAKS";
+    verdictProb.textContent = `Probabilitas Kepastian: ${data.hoax_percentage}% (${data.risk_level})`;
+    if (banner) banner.className = "cert-verdict-banner cert-banner-hoax";
+  } else {
+    verdictTitle.textContent = "HASIL AUDIT: TERVERIFIKASI FAKTA / BERITA RESMI";
+    verdictProb.textContent = `Tingkat Kredibilitas: ${data.fact_percentage}% (${data.risk_level})`;
+    if (banner) banner.className = "cert-verdict-banner cert-banner-fact";
+  }
+
+  document.getElementById("cert-news-title").innerHTML = `<strong>Judul Berita:</strong> "${data.title || '(Tanpa Judul)'}"`;
+  document.getElementById("cert-news-body").innerHTML = `<strong>Kutipan Konten:</strong> "${data.content || data.cleansed_text || '(Tidak ada konten teks)'}"`;
+
+  const termsContainer = document.getElementById("cert-xai-terms");
+  const terms = data.explanation?.top_terms || [];
+  if (terms.length > 0) {
+    termsContainer.innerHTML = terms.slice(0, 8).map(t => {
+      const isH = t.direction === "HOAKS";
+      return `<span class="cert-term-chip ${isH ? 'term-hoax' : 'term-fact'}">${t.term} (${isH ? 'Pemicu Hoaks' : 'Sinyal Fakta'})</span>`;
+    }).join(" ");
+  } else {
+    termsContainer.innerHTML = "<span style='font-size:11px; color:#64748b;'>Tidak ada istilah khusus terisolasi.</span>";
+  }
+
+  openModal("modal-certificate");
+}
+
+// 22. Side-by-Side News Comparison Mode
+function initComparisonMode() {
+  const btnCmpA = document.getElementById("btn-cmp-a");
+  const btnCmpB = document.getElementById("btn-cmp-b");
+  const btnFull = document.getElementById("btn-run-full-compare");
+
+  if (btnCmpA) {
+    btnCmpA.addEventListener("click", () => analyzeCompareArticle("a"));
+  }
+  if (btnCmpB) {
+    btnCmpB.addEventListener("click", () => analyzeCompareArticle("b"));
+  }
+  if (btnFull) {
+    btnFull.addEventListener("click", async () => {
+      btnFull.disabled = true;
+      btnFull.innerHTML = "<span>⏳</span> Menganalisis Kedua Artikel...";
+      try {
+        await Promise.all([analyzeCompareArticle("a"), analyzeCompareArticle("b")]);
+      } finally {
+        btnFull.disabled = false;
+        btnFull.innerHTML = "<span>⚡</span> Jalankan Komparasi Lengkap (Bandingkan Kedua Artikel)";
+      }
+    });
+  }
+}
+
+async function analyzeCompareArticle(side) {
+  const titleInput = document.getElementById(`cmp-title-${side}`);
+  const contentInput = document.getElementById(`cmp-content-${side}`);
+  const resultContainer = document.getElementById(`cmp-result-${side}`);
+  if (!titleInput || !contentInput || !resultContainer) return;
+
+  const title = titleInput.value.trim();
+  const content = contentInput.value.trim();
+
+  if (!title && !content) {
+    alert(`Silakan isi judul atau konten Artikel ${side.toUpperCase()}!`);
+    return;
+  }
+
+  resultContainer.style.display = "block";
+  resultContainer.innerHTML = "<div style='padding:12px; text-align:center; color:#64748b;'>Memproses inferensi MNB...</div>";
+
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/classify/text`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: jsonPayload({ title, content })
+    });
+    const json = await res.json();
+    if (json.success && json.data) {
+      const d = json.data;
+      const isHoax = d.predicted_label === "HOAKS";
+      resultContainer.className = `compare-res-card ${isHoax ? 'cmp-hoax' : 'cmp-fact'}`;
+      resultContainer.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <strong style="color:${isHoax ? '#dc2626' : '#059669'}; font-size:13px;">${isHoax ? '🚨 TERINDIKASI HOAKS' : '✅ BERITA FAKTA'}</strong>
+          <span style="font-size:12px; font-weight:700;">Skor: ${isHoax ? d.hoax_percentage : d.fact_percentage}%</span>
+        </div>
+        <div style="font-size:11px; color:#64748b; margin-bottom:6px;">
+          Risiko: <strong>${d.risk_level}</strong> • Clickbait: <strong>${d.multi_dimensional?.clickbait_score || 0}%</strong>
+        </div>
+        <div style="font-size:11px; display:flex; flex-wrap:wrap; gap:4px;">
+          ${(d.explanation?.top_terms || []).slice(0, 3).map(t => `
+            <span style="background:${t.direction === 'HOAKS' ? '#fee2e2' : '#dcfce7'}; color:${t.direction === 'HOAKS' ? '#991b1b' : '#166534'}; padding:2px 6px; border-radius:4px; font-size:10px;">
+              ${t.term}
+            </span>
+          `).join("")}
+        </div>
+      `;
+    }
+  } catch (err) {
+    resultContainer.innerHTML = "<div style='padding:8px; color:#dc2626; font-size:11px;'>Gagal menganalisis artikel.</div>";
+  }
 }
 

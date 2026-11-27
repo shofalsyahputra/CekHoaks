@@ -3,6 +3,8 @@ import sys
 import json
 import base64
 import time
+import hashlib
+import re
 import mimetypes
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -264,6 +266,70 @@ class AppRequestHandler(BaseHTTPRequestHandler):
 
         self._send_json(404, {"error": "Endpoint tidak valid."})
 
+    def _calculate_multi_dimensional_metrics(self, title: str, content: str, tokens: list, hoax_score: float, source_type: str) -> dict:
+        combined = f"{title} {content}".lower()
+        
+        # 1. Clickbait Score (Sensasionalisme Judul)
+        clickbait_keywords = ["awas", "viral", "terbongkar", "bocoran", "geger", "mengejutkan", "kabar duka", "rahasia", "gempar", "terbukti", "heboh", "syok"]
+        cb_matches = sum(1 for w in clickbait_keywords if w in title.lower())
+        caps_count = sum(1 for c in title if c.isupper())
+        caps_ratio = (caps_count / len(title)) if len(title) > 0 else 0
+        exclamation_count = title.count("!") + content[:100].count("!")
+        
+        raw_cb = (cb_matches * 25) + (caps_ratio * 40) + (exclamation_count * 15)
+        clickbait_score = min(99, max(5, int(raw_cb if hoax_score > 0.5 else raw_cb * 0.4)))
+
+        # 2. Indeks Urgensi Palsu (False Urgency Index)
+        urgency_phrases = ["sebarkanlah", "viralkan", "sebelum dihapus", "bagikan segera", "jangan sampai", "tolak", "boikot", "rakyat harus tahu", "darurat", "peringatan keras"]
+        urg_matches = sum(1 for p in urgency_phrases if p in combined)
+        urgency_index = min(98, max(4, int((urg_matches * 30) + (hoax_score * 35))))
+
+        # 3. Radar Sentimen Emosi (Fear, Anger, Neutral)
+        fear_words = ["awas", "racun", "bahaya", "panik", "ancaman", "meninggal", "korban", "hancur", "tsunami", "gempa", "kanker", "mematikan"]
+        anger_words = ["busuk", "zalim", "korup", "biadab", "curang", "rezim", "boikot", "antek", "bajingan", "dusta", "bobrok"]
+        
+        fear_count = sum(1 for w in fear_words if w in combined)
+        anger_count = sum(1 for w in anger_words if w in combined)
+        
+        if hoax_score > 0.55:
+            fear_pct = min(85, max(20, int(fear_count * 25 + hoax_score * 40)))
+            anger_pct = min(85, max(15, int(anger_count * 25 + hoax_score * 35)))
+            neutral_pct = max(5, 100 - fear_pct - anger_pct)
+        else:
+            neutral_pct = min(90, max(50, int((1 - hoax_score) * 85)))
+            fear_pct = max(5, int((100 - neutral_pct) * 0.5))
+            anger_pct = max(5, 100 - neutral_pct - fear_pct)
+
+        # 4. Indeks Kredibilitas Sumber / Domain
+        credible_domains = ["detik.com", "kompas.com", "tempo.co", "antaranews.com", "kemenkes.go.id", "bmkg.go.id", "kpu.go.id", "cnnindonesia.com", "republika.co.id"]
+        if source_type == "url":
+            is_credible = any(d in combined for d in credible_domains)
+            domain_reputation = 94 if is_credible else 32
+        else:
+            domain_reputation = int(round((1.0 - hoax_score) * 90 + 10))
+
+        # 5. SHA-256 Digital Forensic Certificate ID
+        cert_hash = hashlib.sha256(f"{title} {content}".encode("utf-8")).hexdigest()[:16].upper()
+        cert_id = f"CEKHOAKS-SEC-{cert_hash[:4]}-{cert_hash[4:8]}-{cert_hash[8:12]}-{cert_hash[12:16]}"
+
+        return {
+            "clickbait_score": clickbait_score,
+            "urgency_index": urgency_index,
+            "emotional_sentiment": {
+                "fear": fear_pct,
+                "anger": anger_pct,
+                "neutral": neutral_pct
+            },
+            "domain_reputation": domain_reputation,
+            "forensic_certificate": {
+                "cert_id": cert_id,
+                "sha256": cert_hash,
+                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S UTC+7"),
+                "algorithm": "Multinomial Naive Bayes + Lidstone (alpha=0.5) + LIME XAI",
+                "auditor": "CekHoaks Digital Forensics Engine v1.2"
+            }
+        }
+
     def _perform_classification(self, title: str, content: str, full_text: str, source_type: str = "text") -> dict:
         # Preprocessing Teks
         prep_res = preprocessor.preprocess(full_text)
@@ -280,7 +346,7 @@ class AppRequestHandler(BaseHTTPRequestHandler):
         fact_score = probas.get("FAKTA", 0.5)
 
         # XAI Explanation (LIME Feature Weights)
-        explanation = xai_engine.explain_instance(tokens, top_k=8)
+        explanation = xai_engine.explain_instance(tokens, top_k=10)
 
         # Skala Kepercayaan & Risiko
         confidence = round(max(hoax_score, fact_score) * 100, 1)
@@ -288,6 +354,9 @@ class AppRequestHandler(BaseHTTPRequestHandler):
             risk_level = "Tinggi (Bahaya Hoaks)" if hoax_score > 0.70 else "Sedang (Waspada Misinformasi)"
         else:
             risk_level = "Rendah (Berita Kredibel / Faktual)" if fact_score > 0.70 else "Verifikasi Lanjut Disarankan"
+
+        # Analisis Multi-Dimensi Tingkat Lanjut (Clickbait, Urgensi, Emosi, Forensik)
+        multi_dim = self._calculate_multi_dimensional_metrics(title, content, tokens, hoax_score, source_type)
 
         # Simpan jejak audit ke basis data relasional SQLite
         log_id = db_service.save_log(
@@ -304,6 +373,7 @@ class AppRequestHandler(BaseHTTPRequestHandler):
         return {
             "log_id": log_id,
             "title": title,
+            "content": content,
             "content_preview": (content[:160] + "...") if len(content) > 160 else content,
             "predicted_label": predicted_label,
             "hoax_probability": round(hoax_score, 4),
@@ -316,6 +386,7 @@ class AppRequestHandler(BaseHTTPRequestHandler):
             "cleansed_text": prep_res["cleaned_text"],
             "explanation": explanation,
             "source_type": source_type,
+            "multi_dimensional": multi_dim,
             "evaluated_at": time.strftime("%Y-%m-%d %H:%M:%S")
         }
 

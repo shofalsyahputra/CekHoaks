@@ -19,16 +19,48 @@ Aplikasi mobile deteksi dini berita hoaks dan non-hoaks (fakta) berbahasa Indone
 6. **Modul Pengujian Usabilitas SUS (System Usability Scale)**:
    - Kalkulator 10 pertanyaan Likert dengan ambang batas kelulusan skor > 68.
 
-## 📱 Panduan Menjalankan Aplikasi Flutter
-1. Pastikan Flutter SDK telah terpasang di komputer Anda.
-2. Jalankan perintah instalasi pustaka:
-   ```bash
-   flutter pub get
-   ```
-3. Pastikan backend Python telah aktif (`python backend/api/server.py 8080`).
-4. Jalankan aplikasi di emulator atau perangkat fisik:
-   ```bash
-   flutter run
-   ```
-> **Catatan Jaringan Android Emulator:** Backend URL disetel ke `http://10.0.2.2:8080` (alamat loopback bawaan Android Emulator ke host PC). Jika menggunakan perangkat Android fisik melalui kabel USB atau WiFi, ganti konstanta `baseUrl` di file `lib/services/api_service.dart` dengan alamat IP lokal komputer Anda (misal `http://192.168.1.xxx:8080`).
+## Menjalankan Aplikasi
+
+Jalankan perintah dari folder `mobile_app`:
+
+```powershell
+cd mobile_app
+flutter pub get
+```
+
+### Web (Chrome atau Edge)
+
+```powershell
+flutter run -d chrome
+```
+
+Ganti `chrome` menjadi `edge` jika ingin menggunakan Microsoft Edge.
+
+### Windows desktop
+
+Pastikan Visual Studio sudah terpasang dengan workload **Desktop development with C++**. Jika Flutter meminta symlink support, aktifkan **Developer Mode** Windows (Settings → System → For developers), lalu jalankan:
+
+```powershell
+flutter run -d windows
+```
+
+### Android
+
+Jalankan aplikasi di emulator atau perangkat Android yang terhubung:
+
+```powershell
+flutter run
+```
+
+Untuk memeriksa perangkat yang dikenali Flutter, gunakan `flutter devices`.
+
+### Backend (untuk fitur klasifikasi)
+
+Di terminal kedua, dari folder root repository (satu tingkat di atas `mobile_app`), jalankan:
+
+```powershell
+python backend/api/server.py 8080
+```
+
+> **Catatan jaringan Android Emulator:** Backend URL disetel ke `http://10.0.2.2:8080` (alamat loopback bawaan Android Emulator ke host PC). Jika menggunakan perangkat Android fisik melalui kabel USB atau WiFi, ganti konstanta `baseUrl` di file `lib/services/api_service.dart` dengan alamat IP lokal komputer Anda (misal `http://192.168.1.xxx:8080`).
 

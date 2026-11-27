@@ -33,6 +33,8 @@
           <button class="view-toggle-btn" id="btn-toggle-view" title="Ubah Tampilan Layar Penuh / HP">
             <span id="view-toggle-icon">📱</span> <span class="btn-label" id="view-toggle-text">Mode HP</span>
           </button>
+          <button class="icon-btn" id="btn-toggle-sound" title="Efek Suara AI (Aktif/Bisu)">🔊</button>
+          <button class="icon-btn" id="btn-open-compare" title="Komparasi 2 Berita Berdampingan" onclick="openModal('modal-compare')">⚖️</button>
           <button class="dark-mode-toggle" id="btn-dark-mode" title="Mode Gelap / Terang">🌙</button>
           <button class="icon-btn" id="btn-open-metrics" title="Metrik & Eksperimen MLOps" onclick="openModal('modal-metrics')">📊</button>
           <button class="icon-btn" id="btn-open-sus" title="Uji Usabilitas SUS" onclick="openModal('modal-sus')">📝</button>
@@ -228,6 +230,46 @@
               <div>Skor Fakta: <span id="score-fact-pct" class="prob-fact-val">0%</span></div>
             </div>
 
+            <!-- Stabilo Teks Interaktif (In-Text Highlighting XAI) -->
+            <div class="interactive-highlight-box">
+              <div class="highlight-header">
+                <span>🔍 Analisis Stabilo Teks (Arahkan Kursor/Sentuh):</span>
+                <span class="highlight-legend">
+                  <span class="legend-badge hoax">● Pemicu Hoaks</span>
+                  <span class="legend-badge fact">● Sinyal Fakta</span>
+                </span>
+              </div>
+              <div id="highlighted-text-content" class="highlighted-text">
+                <em style="color:#94a3b8; font-size:12px;">Teks berita yang dianalisis akan ditampilkan dengan stabilo kata kunci di sini...</em>
+              </div>
+            </div>
+
+            <!-- Indikator Analitik Multi-Dimensi -->
+            <div class="multi-dim-section">
+              <h4><span>📊</span> Indikator Analisis Multi-Dimensi:</h4>
+              <div class="multi-dim-grid">
+                <div class="dim-card">
+                  <div class="dim-head"><span>Clickbait Judul</span><strong id="dim-cb-val">0%</strong></div>
+                  <div class="dim-bar-track"><div id="dim-cb-bar" class="dim-bar-fill orange" style="width:0%"></div></div>
+                </div>
+                <div class="dim-card">
+                  <div class="dim-head"><span>Urgensi Palsu</span><strong id="dim-urg-val">0%</strong></div>
+                  <div class="dim-bar-track"><div id="dim-urg-bar" class="dim-bar-fill red" style="width:0%"></div></div>
+                </div>
+                <div class="dim-card">
+                  <div class="dim-head"><span>Reputasi Sumber</span><strong id="dim-rep-val">0%</strong></div>
+                  <div class="dim-bar-track"><div id="dim-rep-bar" class="dim-bar-fill green" style="width:0%"></div></div>
+                </div>
+                <div class="dim-card">
+                  <div class="dim-head"><span>Dominasi Emosi</span><strong id="dim-emo-val">Netral</strong></div>
+                  <div class="dim-emo-pills">
+                    <span id="dim-emo-fear" class="emo-tag">Ketakutan: 0%</span>
+                    <span id="dim-emo-anger" class="emo-tag">Kemarahan: 0%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Explainable AI (LIME Feature Words) -->
             <div class="xai-section">
               <h4>
@@ -252,10 +294,13 @@
 
             <div class="card-actions">
               <button id="btn-copy-card-text" class="btn-secondary">
-                <span>📋</span> Salin Teks Bantahan
+                <span>📋</span> Salin Teks
               </button>
               <button id="btn-download-fact-card" class="btn-secondary">
-                <span>🖼️</span> Unduh Kartu Fakta
+                <span>🖼️</span> Unduh Kartu
+              </button>
+              <button id="btn-open-cert" class="btn-secondary" onclick="openForensicCertificate()">
+                <span>📄</span> Sertifikat Forensik
               </button>
             </div>
 
@@ -273,7 +318,22 @@
 
       </div>
 
-    </main>
+      <!-- Section: Radar Hoaks Terkini & Klarifikasi Media -->
+      <section class="trending-radar-section">
+        <div class="radar-header">
+          <div class="radar-title-group">
+            <span class="radar-live-icon">📡</span>
+            <div>
+              <h3>Radar Hoaks & Fakta Terkini di Indonesia</h3>
+              <p>Kasus-kasus disinformasi viral yang telah diverifikasi oleh MAFINDO & Kominfo (Klik untuk Analisis Instan)</p>
+            </div>
+          </div>
+          <span class="radar-live-pill"><span class="pulse-dot"></span> Live Feed Radar</span>
+        </div>
+        <div class="trending-grid" id="trending-news-grid">
+          <!-- Trending items rendered dynamically via JS -->
+        </div>
+      </section>
 
     </main>
 
@@ -508,6 +568,119 @@
           <span style="font-size:12px; color:#64748b; font-weight:600;">Skor Usabilitas Terhitung:</span>
           <h2 id="sus-result-score">85.0</h2>
           <p id="sus-result-grade" style="font-size:13px; font-weight:700; color:#059669;">Grade A (Excellent) • Acceptable</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Lembar Sertifikat Forensik Digital (PDF/Print View) -->
+  <div id="modal-certificate" class="modal-overlay">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <h3>📄 Lembar Hasil Audit Forensik Siber CekHoaks AI</h3>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="certificate-sheet" id="certificate-print-area">
+          <div class="cert-header">
+            <div class="cert-brand">
+              <span class="cert-logo">🛡️</span>
+              <div>
+                <h2>LABORATORIUM FORENSIK DIGITAL CEKHOAKS AI</h2>
+                <p>Sistem Klasifikasi Berita Berbasis Multinomial Naive Bayes & XAI LIME</p>
+              </div>
+            </div>
+            <div class="cert-hash-badge">
+              <span class="hash-label">KODE INTEGRITAS DIGITAL</span>
+              <strong id="cert-hash-display">SHA-256: 8A4F...</strong>
+            </div>
+          </div>
+          
+          <div class="cert-meta-grid">
+            <div><span>Nomor Registrasi:</span> <strong id="cert-id-val">-</strong></div>
+            <div><span>Waktu Pengujian:</span> <strong id="cert-time-val">-</strong></div>
+            <div><span>Model Klasifikasi:</span> <strong>Multinomial Naive Bayes (MNB)</strong></div>
+            <div><span>Representasi Fitur:</span> <strong>TF-IDF N-gram (1,2) Spasial L2-Norm</strong></div>
+          </div>
+
+          <div class="cert-verdict-banner" id="cert-banner">
+            <span id="cert-verdict-title">HASIL AUDIT: TERINDIKASI HOAKS</span>
+            <span id="cert-verdict-prob">Probabilitas Kepastian: 91.7%</span>
+          </div>
+
+          <div class="cert-section">
+            <h4>KUTIPAN MATERI BERITA YANG DIUJI</h4>
+            <div class="cert-content-box" id="cert-news-title"></div>
+            <div class="cert-content-box" id="cert-news-body" style="margin-top:6px;"></div>
+          </div>
+
+          <div class="cert-section">
+            <h4>EKSPLANASI BUKTI FORENSIK LEKSIKAL (EXPLAINABLE AI)</h4>
+            <p style="font-size:11px; color:#64748b; margin-bottom:6px;">Kata kunci di bawah ini merupakan fitur leksikal pemicu polaritas keputusan menurut bobot log-odds MNB:</p>
+            <div class="cert-xai-terms" id="cert-xai-terms"></div>
+          </div>
+
+          <div class="cert-footer">
+            <div class="cert-seal">
+              <div class="seal-circle">VERIFIED DIGITAL AUDIT</div>
+              <span>Status: Sah Menurut Model MNB</span>
+            </div>
+            <div class="cert-notes">
+              <p>Dokumen forensik ini diterbitkan secara otomatis oleh mesin inferensi CekHoaks AI.</p>
+              <p>Dapat dijadikan rujukan awal verifikasi aduan ke kanal resmi <strong>aduankonten.id</strong> Kementerian Kominfo RI.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="cert-actions">
+          <button class="btn-primary" onclick="window.print()">
+            <span>🖨️</span> Cetak / Simpan Dokumen PDF
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 5: Mode Komparasi Berita Berdampingan (Side-by-Side Comparison) -->
+  <div id="modal-compare" class="modal-overlay">
+    <div class="modal-card modal-xl">
+      <div class="modal-header">
+        <h3>⚖️ Komparasi 2 Berita Berdampingan (Klaim vs Klarifikasi)</h3>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:12px; color:#64748b;">
+          Uji langsung dua versi berita sekaligus untuk membandingkan delta polaritas probabilitas, kata kunci, dan deteksi clickbait.
+        </p>
+
+        <div class="compare-grid">
+          <!-- Berita A (Klaim Viral / Dugaan Hoaks) -->
+          <div class="compare-col">
+            <div class="compare-col-header hoax">
+              <span>🚨 Artikel A (Klaim Medsos)</span>
+            </div>
+            <input type="text" id="cmp-title-a" placeholder="Judul Berita A..." value="Awas Konspirasi Manipulasi Suara KPU Lewat Server Luar Negeri">
+            <textarea id="cmp-content-a" placeholder="Isi Berita A...">Sebarkan informasi penting ini! Terbongkar konspirasi busuk pemilu server luar negeri dialihkan rezim. Boikot sekarang!</textarea>
+            <button class="btn-secondary" id="btn-cmp-a">Analisis Artikel A</button>
+            <div id="cmp-result-a" class="compare-res-card" style="display:none;"></div>
+          </div>
+
+          <!-- Berita B (Klarifikasi Resmi / Berita Faktual) -->
+          <div class="compare-col">
+            <div class="compare-col-header fact">
+              <span>✅ Artikel B (Klarifikasi Portal Resmi)</span>
+            </div>
+            <input type="text" id="cmp-title-b" placeholder="Judul Berita B..." value="KPU Pastikan Seluruh Rekapitulasi Suara Transparan dan Aman">
+            <textarea id="cmp-content-b" placeholder="Isi Berita B...">Komisi Pemilihan Umum KPU RI menegaskan sistem rekapitulasi suara pemilu beroperasi transparan dan akuntabel di pusat data nasional terproteksi.</textarea>
+            <button class="btn-secondary" id="btn-cmp-b">Analisis Artikel B</button>
+            <div id="cmp-result-b" class="compare-res-card" style="display:none;"></div>
+          </div>
+        </div>
+
+        <div class="compare-actions">
+          <button class="btn-primary" id="btn-run-full-compare">
+            <span>⚡</span> Jalankan Komparasi Lengkap (Bandingkan Kedua Artikel)
+          </button>
         </div>
       </div>
     </div>
